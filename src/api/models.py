@@ -108,3 +108,52 @@ class Movies(db.Model):
                 'poster_path': self.poster_path,
                 'release_date': self.release_date}
 
+class Sales(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sale_date = db.Column(db.DateTime, default=datetime.utcnow())
+    discount = db.Column(db.Double)
+    total = db.Column(db.Double)
+    user_id = db.Column(db.Integer)
+
+    def __repr__(self):
+        return f'<Sales: Sale Date{self.sale_date}'
+    
+    def serialize(self):
+        return{ 'id': self.id,
+                'sale_date': self.sale_date,
+                'discount': self.discount,
+                'total': self.total,
+                'user_id': self.user_id,}
+
+class SalesLines(db.Model):
+    __tablename__ = "sales_lines"
+    id = db.Column(db.Integer, primary_key=True)
+    quantity = db.Column(db.Integer)
+    unit_prince = db.Column(db.Double)
+    sale_id = db.Column(db.Integer)
+    product_id = db.Column(db.Integer)
+
+    def __repr__(self):
+        return f'<Sales Lines: {self.id}'
+    
+    def serialize(self):
+        return{ 'id': self.id,
+                'quantity': self.quantity,
+                'unit_prince': self.unit_prince,
+                'sale_id': self.sale_id,
+                'product_id': self.product_id,}
+    
+class Products(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(), nullable=False)
+    base_prince = db.Column(db.Double, nullable=False)
+    category = db.Column(db.Enum("Bebida", "Comida", "Merch", name = "category"), nullable=False)
+
+    def __repr__(self):
+        return f'<Product: {self.name}'
+    
+    def serialize(self):
+        return{ 'id': self.id,
+                'name': self.name,
+                'base_prince': self.base_prince,
+                'category': self.category,}
