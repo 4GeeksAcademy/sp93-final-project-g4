@@ -10,7 +10,7 @@ class Users(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(80), unique=False, nullable=False)
     points = db.Column(db.Integer)
-    wallet = db.Column(db.Double)
+    wallet = db.Column(db.Float)
     is_admin = db.Column(db.Boolean(), unique=False, nullable=False)
 
     def __repr__(self):
@@ -28,8 +28,11 @@ class Users(db.Model):
 class Bookings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     booking_date = db.Column(db.DateTime, default=datetime.utcnow())
-    user_id = db.Column(db.Integer)
-    showtime_id = db.Column(db.Integer)
+    user_id = db.Column(db.Integer,db.ForeignKey('users.id'), nullable=False)
+    user_to = db.relationship('Users', foreign_keys=[user_id], backref=db.backref('user_booking'), lazy='select')
+    showtime_id = db.Column(db.Integer, db.ForeignKey('show_times.id'), nullable=False)
+    showtime_to = db.relationship('ShowTimes', foreign_keys=[showtime_id], backref=db.backref('showtime_booking'), lazy='select')
+    col = db.Column(db.Integer)
     col = db.Column(db.Integer)
     row = db.Column(db.Integer)
 
@@ -66,9 +69,11 @@ class CinemaRooms(db.Model):
 class ShowTimes(db.Model):
     __tablename__ = "show_times"
     id = db.Column(db.Integer, primary_key=True)
-    date_time = db.Column(db.Datetime)
-    movie_id = db.Column(db.Integer)
-    cinema_room_id = db.Column(db.Integer)
+    date_time = db.Column(db.DateTime)
+    movie_id = db.Column(db.Integer, db.ForeignKey('movies.id'), nullable=False)
+    movie_to = db.relationship('Movies', foreign_keys=[movie_id], backref=db.backref('showtime_movie'), lazy='select')
+    cinema_room_id = db.Column(db.Integer, db.ForeignKey('cinema_rooms.id'), nullable=False)
+    cinema_room_to = db.relationship('CinemaRooms', foreign_keys=[cinema_room_id], backref=db.backref('showtime_room'), lazy='select')
     available = db.Column(db.Integer)
 
     def __repr__(self):
@@ -86,11 +91,11 @@ class Movies(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tmdb_id = db.Column(db.Integer, unique=True)
     title = db.Column(db.String, nullable=False)
-    duration = db.Column(db.Integer, nullalbe=False)
+    duration = db.Column(db.Integer, nullable=False)
     overview = db.Column(db.String)
     adult = db.Column(db.Boolean)
     backdrop_path = db.Column(db.String)
-    popularity = db.Column(db.Double)
+    popularity = db.Column(db.Float)
     poster_path = db.Column(db.String)
     release_date = db.Column(db.String)
 
@@ -111,9 +116,10 @@ class Movies(db.Model):
 class Sales(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sale_date = db.Column(db.DateTime, default=datetime.utcnow())
-    discount = db.Column(db.Double)
-    total = db.Column(db.Double)
-    user_id = db.Column(db.Integer)
+    discount = db.Column(db.Float)
+    total = db.Column(db.Float)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user_to = db.relationship('Users', foreign_keys=[user_id], backref=db.backref('sales'), lazy='select')
 
     def __repr__(self):
         return f'<Sales: Sale Date{self.sale_date}'
@@ -129,9 +135,11 @@ class SalesLines(db.Model):
     __tablename__ = "sales_lines"
     id = db.Column(db.Integer, primary_key=True)
     quantity = db.Column(db.Integer)
-    unit_prince = db.Column(db.Double)
-    sale_id = db.Column(db.Integer)
-    product_id = db.Column(db.Integer)
+    unit_prince = db.Column(db.Float)
+    sale_id = db.Column(db.Integer, db.ForeignKey('sales.id'))
+    sale_to = db.relationship('Sales', foreign_keys=[sale_id], backref=db.backref('sales_lines'), lazy='select')
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'))
+    product_to = db.relationship('Products', foreign_keys=[product_id], backref=db.backref('sales_lines'), lazy='select')
 
     def __repr__(self):
         return f'<Sales Lines: {self.id}'
@@ -146,7 +154,7 @@ class SalesLines(db.Model):
 class Products(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(), nullable=False)
-    base_prince = db.Column(db.Double, nullable=False)
+    base_prince = db.Column(db.Float, nullable=False)
     category = db.Column(db.Enum("Bebida", "Comida", "Merch", name = "category"), nullable=False)
 
     def __repr__(self):
