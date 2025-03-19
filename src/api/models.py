@@ -12,7 +12,7 @@ class Users(db.Model):
     points = db.Column(db.Integer, default=0)
     wallet = db.Column(db.Float, default=0)
     is_admin = db.Column(db.Boolean(), nullable=False)
-
+ 
     def __repr__(self):
         return f'<User email:{self.email} - name: {self.name} - id:{self.id}>'
 
@@ -28,8 +28,11 @@ class Users(db.Model):
 class Bookings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     booking_date = db.Column(db.DateTime, default=datetime.utcnow())
-    user_id = db.Column(db.Integer)
-    showtime_id = db.Column(db.Integer)
+    user_id = db.Column(db.Integer,db.ForeignKey('users.id'), nullable=False)
+    user_to = db.relationship('Users', foreign_keys=[user_id], backref=db.backref('user_booking'), lazy='select')
+    showtime_id = db.Column(db.Integer, db.ForeignKey('show_times.id'), nullable=False)
+    showtime_to = db.relationship('ShowTimes', foreign_keys=[showtime_id], backref=db.backref('showtime_booking'), lazy='select')
+    col = db.Column(db.Integer)
     col = db.Column(db.Integer)
     row = db.Column(db.Integer)
 
@@ -67,8 +70,10 @@ class ShowTimes(db.Model):
     __tablename__ = "show_times"
     id = db.Column(db.Integer, primary_key=True)
     date_time = db.Column(db.DateTime)
-    movie_id = db.Column(db.Integer)
-    cinema_room_id = db.Column(db.Integer)
+    movie_id = db.Column(db.Integer, db.ForeignKey('movies.id'), nullable=False)
+    movie_to = db.relationship('Movies', foreign_keys=[movie_id], backref=db.backref('showtime_movie'), lazy='select')
+    cinema_room_id = db.Column(db.Integer, db.ForeignKey('cinema_rooms.id'), nullable=False)
+    cinema_room_to = db.relationship('CinemaRooms', foreign_keys=[cinema_room_id], backref=db.backref('showtime_room'), lazy='select')
     available = db.Column(db.Integer)
 
     def __repr__(self):
@@ -113,7 +118,8 @@ class Sales(db.Model):
     sale_date = db.Column(db.DateTime, default=datetime.utcnow())
     discount = db.Column(db.Float)
     total = db.Column(db.Float)
-    user_id = db.Column(db.Integer)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user_to = db.relationship('Users', foreign_keys=[user_id], backref=db.backref('sales'), lazy='select')
 
     def __repr__(self):
         return f'<Sales: Sale Date{self.sale_date}'
@@ -130,8 +136,10 @@ class SalesLines(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     quantity = db.Column(db.Integer)
     unit_prince = db.Column(db.Float)
-    sale_id = db.Column(db.Integer)
-    product_id = db.Column(db.Integer)
+    sale_id = db.Column(db.Integer, db.ForeignKey('sales.id'))
+    sale_to = db.relationship('Sales', foreign_keys=[sale_id], backref=db.backref('sales_lines'), lazy='select')
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'))
+    product_to = db.relationship('Products', foreign_keys=[product_id], backref=db.backref('sales_lines'), lazy='select')
 
     def __repr__(self):
         return f'<Sales Lines: {self.id}'
