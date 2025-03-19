@@ -26,6 +26,7 @@ def handle_hello():
 
 @api.route('/login', methods=["POST"])
 def login():
+    
     response_body = {}
     data = request.json
     """ print("soy el data del login: ", data) """
@@ -46,12 +47,31 @@ def login():
     response_body['access_token'] = access_token
     response_body['results'] = user
     return response_body, 200
+    
+
+@api.route('/register', methods=['POST'])
+def register():
+    response_body = {}
+    data = request.json
+    print('soy el data del register: ', data)
+    row = Users(username=data.get("username", ""), email=data["email"], password=data["password"], is_admin=data.get("is_admin", False))
+    db.session.add(row)
+    db.session.commit()
+    user = row.serialize()
+    claims ={'id': user['id'],
+             'is_admin': user['is_admin']}
+    print('soy el claims del register: ', claims)
+    access_token = create_access_token(identity=user['email'], additional_claims=claims)
+    response_body['message'] = 'New User Created'
+    response_body['access_token'] = access_token
+    response_body['resuslts'] = user
+    return response_body, 200
+
 
 @api.route('/movies', methods=['GET'])
 def movies():
     import_popular_movies()
     response_body = {}
-
     movies = db.session.execute(db.select(Movies)).scalars()
     response_body["message"] = "List of movies"
     response_body["results"] = [movie.serialize() for movie in movies]
@@ -71,19 +91,20 @@ def user_bookings():
     return response_body, 200
 
 def import_popular_movies():
-    url = os.getenv("URL_TMDB", "") + "/popular?language=en-US&page=1"
+    url = "https://api.themoviedb.org/3/movie/popular?language=en-US&page=1"
     headers = {
         "accept": "application/json",
-        "Authorization": "Bearer " + os.getenv("TOKEN_API_TMDB", "")
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJiNDQ4YjI1ODY5MjQxZGE4NWEwMWY4MmQwMTY3ODAxYyIsIm5iZiI6MTY5ODc0NDQxNy43MjMsInN1YiI6IjY1NDBjODYxNmNhOWEwMDBjYTE1OThiNSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.fZKKGfeQxhYjIx0tw29nkw683XR8vsFqcxYO3VV1eXw"
     }
 
     response = requests.get(url, headers=headers)
     movies = response.json().get("results", [])
+    
 
     for movie in movies:
         tmdb_id = movie["id"]
         title = movie["title"]
-        runtime = movie.get("runtime", 0) # La duracion smp va a ser 0 porque en la API al traer la lista de peliculas no tiene el atributo "duration"
+        runtime = movie.get("runtime", 0) # La duracion smp va a ser 0 porque en la API al traer la lista de peliculas no tiene el atributo "runtime"
         overview = movie.get("overview", "")
         adult = movie["adult"]
         backdrop_path = movie["backdrop_path"]
@@ -106,3 +127,6 @@ def import_popular_movies():
             db.session.add(new_movie)
 
     db.session.commit()
+
+    
+    
