@@ -6,15 +6,15 @@ db = SQLAlchemy()
 
 class Users(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.Integer, unique=True, nullable=False)
+    username = db.Column(db.String, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(80), unique=False, nullable=False)
-    points = db.Column(db.Integer)
-    wallet = db.Column(db.Double)
-    is_admin = db.Column(db.Boolean(), unique=False, nullable=False)
+    password = db.Column(db.String(80), nullable=False)
+    points = db.Column(db.Integer, default=0)
+    wallet = db.Column(db.Float, default=0)
+    is_admin = db.Column(db.Boolean(), nullable=False)
 
     def __repr__(self):
-        return f'<User {self.email}>'
+        return f'<User email:{self.email} - name: {self.name} - id:{self.id}>'
 
     def serialize(self):
         return {'id': self.id,
@@ -66,7 +66,7 @@ class CinemaRooms(db.Model):
 class ShowTimes(db.Model):
     __tablename__ = "show_times"
     id = db.Column(db.Integer, primary_key=True)
-    date_time = db.Column(db.Datetime)
+    date_time = db.Column(db.DateTime)
     movie_id = db.Column(db.Integer)
     cinema_room_id = db.Column(db.Integer)
     available = db.Column(db.Integer)
@@ -86,11 +86,11 @@ class Movies(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tmdb_id = db.Column(db.Integer, unique=True)
     title = db.Column(db.String, nullable=False)
-    duration = db.Column(db.Integer, nullalbe=False)
+    duration = db.Column(db.Integer, nullable=False)
     overview = db.Column(db.String)
     adult = db.Column(db.Boolean)
     backdrop_path = db.Column(db.String)
-    popularity = db.Column(db.Double)
+    popularity = db.Column(db.Float)
     poster_path = db.Column(db.String)
     release_date = db.Column(db.String)
 
@@ -111,8 +111,8 @@ class Movies(db.Model):
 class Sales(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sale_date = db.Column(db.DateTime, default=datetime.utcnow())
-    discount = db.Column(db.Double)
-    total = db.Column(db.Double)
+    discount = db.Column(db.Float)
+    total = db.Column(db.Float)
     user_id = db.Column(db.Integer)
 
     def __repr__(self):
@@ -129,7 +129,7 @@ class SalesLines(db.Model):
     __tablename__ = "sales_lines"
     id = db.Column(db.Integer, primary_key=True)
     quantity = db.Column(db.Integer)
-    unit_prince = db.Column(db.Double)
+    unit_prince = db.Column(db.Float)
     sale_id = db.Column(db.Integer)
     product_id = db.Column(db.Integer)
 
@@ -146,7 +146,7 @@ class SalesLines(db.Model):
 class Products(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(), nullable=False)
-    base_prince = db.Column(db.Double, nullable=False)
+    base_prince = db.Column(db.Float, nullable=False)
     category = db.Column(db.Enum("Bebida", "Comida", "Merch", name = "category"), nullable=False)
 
     def __repr__(self):
