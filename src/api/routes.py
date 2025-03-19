@@ -61,9 +61,9 @@ def register():
     claims ={'id': user['id'],
              'is_admin': user['is_admin']}
     print('soy el claims del register: ', claims)
-    """ access_token = create_access_token(identity=user['email'], additional_claims=claims) """
+    access_token = create_access_token(identity=user['email'], additional_claims=claims)
     response_body['message'] = 'New User Created'
-    """ response_body['access_token'] = access_token """
+    response_body['access_token'] = access_token
     response_body['resuslts'] = user
     return response_body, 200
 
