@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 2c9f0daf7308
+Revision ID: 9e64edccc41d
 Revises: 
-Create Date: 2025-03-18 16:44:20.039917
+Create Date: 2025-03-19 20:23:30.889587
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '2c9f0daf7308'
+revision = '9e64edccc41d'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -30,7 +30,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('tmdb_id', sa.Integer(), nullable=True),
     sa.Column('title', sa.String(), nullable=False),
-    sa.Column('duration', sa.Integer(), nullable=False),
+    sa.Column('runtime', sa.Integer(), nullable=False),
     sa.Column('overview', sa.String(), nullable=True),
     sa.Column('adult', sa.Boolean(), nullable=True),
     sa.Column('backdrop_path', sa.String(), nullable=True),
@@ -49,15 +49,14 @@ def upgrade():
     )
     op.create_table('users',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('username', sa.Integer(), nullable=False),
+    sa.Column('username', sa.String(), nullable=False),
     sa.Column('email', sa.String(length=120), nullable=False),
     sa.Column('password', sa.String(length=80), nullable=False),
     sa.Column('points', sa.Integer(), nullable=True),
     sa.Column('wallet', sa.Float(), nullable=True),
     sa.Column('is_admin', sa.Boolean(), nullable=False),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('email'),
-    sa.UniqueConstraint('username')
+    sa.UniqueConstraint('email')
     )
     op.create_table('sales',
     sa.Column('id', sa.Integer(), nullable=False),

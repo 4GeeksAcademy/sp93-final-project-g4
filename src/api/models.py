@@ -91,7 +91,7 @@ class Movies(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tmdb_id = db.Column(db.Integer, unique=True)
     title = db.Column(db.String, nullable=False)
-    duration = db.Column(db.Integer, nullable=False)
+    runtime = db.Column(db.Integer, nullable=False)
     overview = db.Column(db.String)
     adult = db.Column(db.Boolean)
     backdrop_path = db.Column(db.String)
@@ -105,7 +105,7 @@ class Movies(db.Model):
     def serialize(self):
         return{ 'id': self.id,
                 'tmdb_id': self.tmdb_id,
-                'duration': self.duration,
+                'runtime': self.runtime,
                 'overview': self.overview,
                 'adult': self.adult,
                 'backdrop_path': self.backdrop_path,

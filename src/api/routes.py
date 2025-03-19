@@ -58,8 +58,25 @@ def movies():
     return response_body, 200
 
 
+@api.route('/movies/<int:movie_id>', methods=['GET'])
+def get_movie_details(movie_id):
+    response_body = {}
+
+    movie = db.session.execute(db.select(Movies).where(Movies.id == movie_id)).scalar()
+
+    if not movie: 
+        response_body["message"] = "Movie not found"
+        return jsonify(response_body), 404
+
+    response_body["message"] = "Movie details"
+    response_body["result"] = movie.serialize()
+
+    return jsonify(response_body), 200 
+
+
+
 def import_popular_movies():
-    url = os.getenv("URL_TMDB", "") + "/popular?language=en-US&page=1"
+    url = "https://api.themoviedb.org/3/movie/popular?language=en-US&page=1"
     headers = {
         "accept": "application/json",
         "Authorization": "Bearer " + os.getenv("TOKEN_API_TMDB", "")
@@ -71,7 +88,7 @@ def import_popular_movies():
     for movie in movies:
         tmdb_id = movie["id"]
         title = movie["title"]
-        duration = movie.get("duration", 0) # La duracion smp va a ser 0 porque en la API al traer la lista de peliculas no tiene el atributo "duration"
+        runtime = movie.get("runtime", 0) # La duracion smp va a ser 0 porque en la API al traer la lista de peliculas no tiene el atributo "duration"
         overview = movie.get("overview", "")
         adult = movie["adult"]
         backdrop_path = movie["backdrop_path"]
@@ -84,7 +101,7 @@ def import_popular_movies():
             new_movie = Movies(
                 tmdb_id=tmdb_id, 
                 title=title,
-                duration=duration, 
+                runtime=runtime, 
                 overview=overview,
                 adult=adult,
                 backdrop_path=backdrop_path,
@@ -94,3 +111,5 @@ def import_popular_movies():
             db.session.add(new_movie)
 
     db.session.commit()
+
+
