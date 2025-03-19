@@ -57,6 +57,18 @@ def movies():
     response_body["results"] = [movie.serialize() for movie in movies]
     return response_body, 200
 
+@api.route('/user-bookings', methods=['GET'])
+@jwt_required()
+def user_bookings():
+    response_body = {}
+    current_user = get_jwt_identity()
+
+    user = db.session.execute(db.select(Users).where(Users.email==current_user)).scalar()
+    bookings = db.session.execute(db.select(Bookings).where(Bookings.user_id==user.id)).scalars()
+
+    response_body['message'] = "List de bookings"
+    response_body['results'] = [ booking.serialize() for booking in bookings]
+    return response_body, 200
 
 def import_popular_movies():
     url = os.getenv("URL_TMDB", "") + "/popular?language=en-US&page=1"
@@ -71,7 +83,7 @@ def import_popular_movies():
     for movie in movies:
         tmdb_id = movie["id"]
         title = movie["title"]
-        duration = movie.get("duration", 0) # La duracion smp va a ser 0 porque en la API al traer la lista de peliculas no tiene el atributo "duration"
+        runtime = movie.get("runtime", 0) # La duracion smp va a ser 0 porque en la API al traer la lista de peliculas no tiene el atributo "duration"
         overview = movie.get("overview", "")
         adult = movie["adult"]
         backdrop_path = movie["backdrop_path"]
@@ -84,7 +96,7 @@ def import_popular_movies():
             new_movie = Movies(
                 tmdb_id=tmdb_id, 
                 title=title,
-                duration=duration, 
+                runtime=runtime, 
                 overview=overview,
                 adult=adult,
                 backdrop_path=backdrop_path,

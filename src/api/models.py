@@ -14,7 +14,7 @@ class Users(db.Model):
     is_admin = db.Column(db.Boolean(), nullable=False)
  
     def __repr__(self):
-        return f'<User email:{self.email} - name: {self.name} - id:{self.id}>'
+        return f'<User email:{self.email} - name: {self.username} - id:{self.id}>'
 
     def serialize(self):
         return {'id': self.id,
@@ -32,7 +32,6 @@ class Bookings(db.Model):
     user_to = db.relationship('Users', foreign_keys=[user_id], backref=db.backref('user_booking'), lazy='select')
     showtime_id = db.Column(db.Integer, db.ForeignKey('show_times.id'), nullable=False)
     showtime_to = db.relationship('ShowTimes', foreign_keys=[showtime_id], backref=db.backref('showtime_booking'), lazy='select')
-    col = db.Column(db.Integer)
     col = db.Column(db.Integer)
     row = db.Column(db.Integer)
 
@@ -91,7 +90,7 @@ class Movies(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tmdb_id = db.Column(db.Integer, unique=True)
     title = db.Column(db.String, nullable=False)
-    duration = db.Column(db.Integer, nullable=False)
+    runtime = db.Column(db.Integer, nullable=False)
     overview = db.Column(db.String)
     adult = db.Column(db.Boolean)
     backdrop_path = db.Column(db.String)
@@ -105,7 +104,7 @@ class Movies(db.Model):
     def serialize(self):
         return{ 'id': self.id,
                 'tmdb_id': self.tmdb_id,
-                'duration': self.duration,
+                'runtime': self.runtime,
                 'overview': self.overview,
                 'adult': self.adult,
                 'backdrop_path': self.backdrop_path,
