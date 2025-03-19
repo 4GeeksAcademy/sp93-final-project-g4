@@ -90,6 +90,23 @@ def user_bookings():
     response_body['results'] = [ booking.serialize() for booking in bookings]
     return response_body, 200
 
+@api.route('/movies/<int:movie_id>', methods=['GET'])
+def get_movie_details(movie_id):
+    response_body = {}
+
+    movie = db.session.execute(db.select(Movies).where(Movies.id == movie_id)).scalar()
+
+    if not movie: 
+        response_body["message"] = "Movie not found"
+        return jsonify(response_body), 404
+
+    response_body["message"] = "Movie details"
+    response_body["result"] = movie.serialize()
+
+    return jsonify(response_body), 200 
+
+
+
 def import_popular_movies():
     url = "https://api.themoviedb.org/3/movie/popular?language=en-US&page=1"
     headers = {
@@ -128,5 +145,4 @@ def import_popular_movies():
 
     db.session.commit()
 
-    
-    
+
