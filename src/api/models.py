@@ -28,6 +28,7 @@ class Users(db.Model):
 class Bookings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     booking_date = db.Column(db.DateTime, default=datetime.utcnow())
+    booking_price = db.Column(db.Float, default=5)
     user_id = db.Column(db.Integer,db.ForeignKey('users.id'), nullable=False)
     user_to = db.relationship('Users', foreign_keys=[user_id], backref=db.backref('user_booking'), lazy='select')
     showtime_id = db.Column(db.Integer, db.ForeignKey('show_times.id'), nullable=False)
@@ -37,14 +38,16 @@ class Bookings(db.Model):
 
     def __repr__(self):
         return f'<Booking: {self.id}> - user: {self.user_id}'
-
-    def serialize(self):
-        return {'id': self.id,
-                'booking_date': self.booking_date,
-                'user_id': self.user_id,
-                'showtime_id': self.showtime_id,
-                'col': self.col,
-                'row': self.row}
+    
+    def user_bookings(self):
+        return {
+            "booking_date": self.booking_date.strftime("%d/%m/%Y %H:%M"),
+            "row": self.row,
+            "col": self.col,
+            "booking_price": self.booking_price,
+            "movie_title": self.showtime_to.movie_to.title,
+            "showtime_date":self.showtime_to.date_time.strftime("%d/%m/%Y %H:%M"),
+            "cinema_room_name": self.showtime_to.cinema_room_to.name}
 
 class CinemaRooms(db.Model):
     __tablename__ = "cinema_rooms"

@@ -84,10 +84,16 @@ def user_bookings():
     current_user = get_jwt_identity()
 
     user = db.session.execute(db.select(Users).where(Users.email==current_user)).scalar()
-    bookings = db.session.execute(db.select(Bookings).where(Bookings.user_id==user.id)).scalars()
+    bookings = db.session.execute(
+        db.select(Bookings)
+        .join(ShowTimes, Bookings.showtime_id == ShowTimes.id)
+        .join(Movies, ShowTimes.movie_id == Movies.id)
+        .join(CinemaRooms, ShowTimes.cinema_room_id == CinemaRooms.id)
+        .where(Bookings.user_id == user.id)
+    ).scalars()
 
     response_body['message'] = "List de bookings"
-    response_body['results'] = [ booking.serialize() for booking in bookings]
+    response_body['results'] = [ booking.user_bookings() for booking in bookings]
     return response_body, 200
 
 @api.route('/movies/<int:movie_id>', methods=['GET'])
