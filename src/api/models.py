@@ -33,6 +33,7 @@ class Bookings(db.Model):
     user_to = db.relationship('Users', foreign_keys=[user_id], backref=db.backref('user_booking'), lazy='select')
     showtime_id = db.Column(db.Integer, db.ForeignKey('show_times.id'), nullable=False)
     showtime_to = db.relationship('ShowTimes', foreign_keys=[showtime_id], backref=db.backref('showtime_booking'), lazy='select')
+    sale_id = db.Column(db.Integer, db.ForeignKey('sales.id'))
     col = db.Column(db.Integer)
     row = db.Column(db.Integer)
 
@@ -122,13 +123,16 @@ class Sales(db.Model):
     total = db.Column(db.Float)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     user_to = db.relationship('Users', foreign_keys=[user_id], backref=db.backref('sales'), lazy='select')
+    sales_lines_to = db.relationship('SalesLines', backref='sale', lazy="select")
+    booking_user_to = db.relationship('Bookings', backref='booking', lazy="select")
 
     def __repr__(self):
         return f'<Sales: Sale Date{self.sale_date}'
     
     def serialize(self):
-        return{ 'id': self.id,
-                'sale_date': self.sale_date,
+        return{ 'sale_date': self.sale_date.strftime("%d/%m/%Y %H:%M"),
+                'sales_lines': [sale_line.serialize() for sale_line in self.sales_lines_to],
+                'bookings': [booking.user_bookings() for booking in self.booking_user_to],
                 'discount': self.discount,
                 'total': self.total,
                 'user_id': self.user_id,}
@@ -139,7 +143,6 @@ class SalesLines(db.Model):
     quantity = db.Column(db.Integer)
     unit_prince = db.Column(db.Float)
     sale_id = db.Column(db.Integer, db.ForeignKey('sales.id'))
-    sale_to = db.relationship('Sales', foreign_keys=[sale_id], backref=db.backref('sales_lines'), lazy='select')
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'))
     product_to = db.relationship('Products', foreign_keys=[product_id], backref=db.backref('sales_lines'), lazy='select')
 
@@ -147,11 +150,9 @@ class SalesLines(db.Model):
         return f'<Sales Lines: {self.id}'
     
     def serialize(self):
-        return{ 'id': self.id,
-                'quantity': self.quantity,
+        return{ 'quantity': self.quantity,
                 'unit_prince': self.unit_prince,
-                'sale_id': self.sale_id,
-                'product_id': self.product_id,}
+                'product': self.product_to.name}
     
 class Products(db.Model):
     id = db.Column(db.Integer, primary_key=True)

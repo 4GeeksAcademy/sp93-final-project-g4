@@ -1,21 +1,8 @@
 """empty message
 
-<<<<<<< HEAD
-<<<<<<<< HEAD:migrations/versions/f756c6b0c697_.py
-Revision ID: f756c6b0c697
+Revision ID: b3ae83fb7655
 Revises: 
-Create Date: 2025-03-19 20:25:07.288794
-=======
-<<<<<<<< HEAD:migrations/versions/9e64edccc41d_.py
-Revision ID: 9e64edccc41d
-Revises: 
-Create Date: 2025-03-19 20:23:30.889587
->>>>>>> develop
-========
-Revision ID: 766ef8fcc007
-Revises: 
-Create Date: 2025-03-19 20:26:28.269562
->>>>>>>> develop:migrations/versions/766ef8fcc007_.py
+Create Date: 2025-03-21 17:47:02.685029
 
 """
 from alembic import op
@@ -23,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'f756c6b0c697'
+revision = 'b3ae83fb7655'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -93,10 +80,13 @@ def upgrade():
     op.create_table('bookings',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('booking_date', sa.DateTime(), nullable=True),
+    sa.Column('booking_price', sa.Float(), nullable=True),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('showtime_id', sa.Integer(), nullable=False),
+    sa.Column('sale_id', sa.Integer(), nullable=True),
     sa.Column('col', sa.Integer(), nullable=True),
     sa.Column('row', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['sale_id'], ['sales.id'], ),
     sa.ForeignKeyConstraint(['showtime_id'], ['show_times.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')

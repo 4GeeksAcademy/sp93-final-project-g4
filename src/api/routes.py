@@ -77,6 +77,7 @@ def movies():
     response_body["results"] = [movie.serialize() for movie in movies]
     return response_body, 200
 
+
 @api.route('/user-bookings', methods=['GET'])
 @jwt_required()
 def user_bookings():
@@ -96,6 +97,7 @@ def user_bookings():
     response_body['results'] = [ booking.user_bookings() for booking in bookings]
     return response_body, 200
 
+
 @api.route('/movies/<int:movie_id>', methods=['GET'])
 def get_movie_details(movie_id):
     response_body = {}
@@ -112,6 +114,26 @@ def get_movie_details(movie_id):
     return jsonify(response_body), 200 
 
 
+@api.route('/sales', methods=['GET'])
+@jwt_required()
+def get_sales():
+    response_body = {}
+    current_user = get_jwt_identity()
+
+    user = db.session.execute(db.select(Users).where(Users.email==current_user)).scalar()
+
+    if not user:
+        response_body['message'] = "User dont found"
+        return response_body, 404
+
+    sales = db.session.execute(db.select(Sales)
+                               .where(Sales.user_id == user.id)
+                               ).scalars()
+
+    response_body["message"] = "List of sales"
+    response_body["results"] = [sale.serialize() for sale in sales]
+
+    return jsonify(response_body), 200
 
 def import_popular_movies():
     url = "https://api.themoviedb.org/3/movie/popular?language=en-US&page=1"
