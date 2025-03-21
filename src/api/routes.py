@@ -135,6 +135,66 @@ def get_sales():
 
     return jsonify(response_body), 200
 
+
+@api.route('/book-ticket', methods=['POST'])
+@jwt_required()
+def book_ticket():
+    response_body = {}
+    current_user_email = get_jwt_identity()
+
+    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
+    if not user:
+        return jsonify({'message': "User not found"}), 400
+    
+    data = request.json
+    showtime_id = data.get('showtime_id')
+    row = data.get('row')
+    col = data.get('col')
+
+    if showtime_id is None or row is None or col is None:
+        return jsonify({'message': 'Missing required fields'}), 400
+    
+    showtime = db.session.execute(db.select(ShowTimes).where(ShowTimes.id == showtime_id)).scalar()
+    if not showtime:
+        return jsonify({'message': 'Showtime not found'}), 404
+    
+    if showtime.available <= 0:
+        return jsonify({'message': 'No ticket available'}), 400
+    
+    cinema_room = showtime.cinema_room_to
+    if row < 1 or row > cinema_room.cinema_row or col < 1 or col > cinema_room.cinema_col:
+        return jsonify({'message': 'Invalid seat selection'}), 400
+    
+    existing_booking = db.session.execute(
+        db.select(Bookings).where(
+            Bookings.showtime_id == showtime_id,
+            Bookings.row == row,
+            Bookings.col == col
+        )
+    ).scalar()
+    
+    if existing_booking:
+        return jsonify({'message': 'The seat is already reserved'}), 400
+    
+    new_booking = Bookings(
+        user_id = user.id,
+        showtime_id = showtime_id,
+        row = row,
+        col = col,
+        booking_price = 5  # Preguntar el precio que quieren
+    )
+
+    db.session.add(new_booking)
+
+    showtime.available -= 1
+    db.session.commit()
+
+    response_body['message'] = 'Booking successful'
+    response_body['booking'] = new_booking.user_bookings()
+
+    return jsonify(response_body), 200
+
+
 def import_popular_movies():
     url = "https://api.themoviedb.org/3/movie/popular?language=en-US&page=1"
     headers = {
