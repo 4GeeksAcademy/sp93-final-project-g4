@@ -132,7 +132,7 @@ class Sales(db.Model):
     def serialize(self):
         return{ 'sale_date': self.sale_date.strftime("%d/%m/%Y %H:%M"),
                 'sales_lines': [sale_line.serialize() for sale_line in self.sales_lines_to],
-                'bookings': [booking.serialize() for booking in self.booking_user_to],
+                'bookings': [booking.user_bookings() for booking in self.booking_user_to],
                 'discount': self.discount,
                 'total': self.total,
                 'user_id': self.user_id,}
