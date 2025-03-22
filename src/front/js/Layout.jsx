@@ -9,6 +9,7 @@ import { Navbar } from "./component/Navbar.jsx";
 // Custom Pages or Views
 import { Home } from "./pages/Home.jsx";
 import { Error404 } from "./pages/Error404.jsx";
+import { Login } from "./pages/Login.jsx";
 
 
 //Create your first component
@@ -25,6 +26,7 @@ const Layout = () => {
                     <Navbar />
                     <Routes>
                         <Route element={<Home />} path="/" />
+                        <Route element={<Login />} path="/login" />
                         <Route element={<Error404/>} path='*'/>
                     </Routes>
                     <Footer />

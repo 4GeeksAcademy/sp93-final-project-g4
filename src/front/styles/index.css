@@ -1,3 +1,6 @@
 /* 
     General Styles used on every website (Don't Repeat Yourself)
 */
+body{
+    background-color: rgba(0, 0, 0, 0.863);
+}
