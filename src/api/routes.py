@@ -136,6 +136,70 @@ def get_sales():
     return jsonify(response_body), 200
 
 
+@api.route('/store-cinema', methods=['GET', 'POST'])
+@jwt_required()
+def store_cinema():
+    response_body = {}
+    current_user_email = get_jwt_identity()
+    user = db.session.execute(db.select(Users).where(Users.email== current_user_email)).scalar()
+    if request.method == 'GET':
+        bookings = db.session.execute(db.select(Bookings, Movies, ShowTimes, CinemaRooms)
+                                      .join(ShowTimes, Bookings.showtime_id == ShowTimes.id)
+                                      .join(Movies, ShowTimes.movie_id == Movies.id)
+                                      .join(CinemaRooms, ShowTimes.cinema_room_id == CinemaRooms.id)
+                                      .where(Bookings.user_id == user.id)).all()
+        if not bookings:
+            response_body['message'] = 'You need to reserve a ticket before you can buy in our Cinema Store'
+            return response_body, 400
+        
+        reserved_tickets = [{'selected_movie': movie.title,
+                                'movie_date': showtime.date_time.strftime("%Y-%m-%d %H:%M:%S"),
+                                'cinema_room': cinema_room.name} for booking, movie, showtime, cinema_room in bookings]
+       
+            
+        sales = db.session.execute(db.select(Sales, SalesLines, Products)
+                               .where(Sales.user_id == user.id)
+                               ).all()
+        sale_list = [{'your_snacks': product.name,
+                      'quantity': sale_line.quantity,
+                      'price': sale_line.unit_price} for sale, sale_line, product in sales]
+        response_body = {
+            "message": "Wellcome to our Cinema Store! This are your tickets:",
+            "your tickets": reserved_tickets,
+            "sales":sale_list}
+        
+        return jsonify(response_body), 200
+        
+    elif request.method == 'POST':
+        data = request.json
+        selected_products = data.get('products', [])
+        if not selected_products:
+            response_body['message'] = "You don't have any snacks yet. Get Some!"
+            return response_body, 400
+        
+        total = sum([product.get('price') * product.get('quantity', 0) for product in selected_products])
+        new_sale = Sales(user_id=user.id, total=total)
+        db.session.add(new_sale)
+        db.session.commit()
+
+        for product in selected_products:
+            product_selected = db.session.execute(db.select(Products).where(Products.name==product.get('name'))).scalar()
+            if product_selected:
+                new_sale_line = SalesLines(sale_id=new_sale.id,
+                                           product_id=product_selected.id,
+                                           quantity=product.get('quantity', 0),
+                                           unit_price=product_selected.base_price)
+                db.session.add(new_sale_line)
+        db.session.commit()
+        products_detail = [{'name': product.get('name'),
+                            'quantity': product.get('quantity'),
+                            'price':product.get('price')}for product in selected_products]
+
+        response_body['message'] = "Your purchase is done! Here's your resume: "
+        response_body['results'] = products_detail
+        return response_body, 201
+
+
 @api.route('/book-ticket', methods=['POST'])
 @jwt_required()
 def book_ticket():

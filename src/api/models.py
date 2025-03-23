@@ -108,6 +108,7 @@ class Movies(db.Model):
     def serialize(self):
         return{ 'id': self.id,
                 'tmdb_id': self.tmdb_id,
+                'title': self.title,
                 'runtime': self.runtime,
                 'overview': self.overview,
                 'adult': self.adult,
@@ -141,7 +142,7 @@ class SalesLines(db.Model):
     __tablename__ = "sales_lines"
     id = db.Column(db.Integer, primary_key=True)
     quantity = db.Column(db.Integer)
-    unit_prince = db.Column(db.Float)
+    unit_price = db.Column(db.Float)
     sale_id = db.Column(db.Integer, db.ForeignKey('sales.id'))
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'))
     product_to = db.relationship('Products', foreign_keys=[product_id], backref=db.backref('sales_lines'), lazy='select')
@@ -151,13 +152,13 @@ class SalesLines(db.Model):
     
     def serialize(self):
         return{ 'quantity': self.quantity,
-                'unit_prince': self.unit_prince,
+                'unit_price': self.unit_price,
                 'product': self.product_to.name}
     
 class Products(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(), nullable=False)
-    base_prince = db.Column(db.Float, nullable=False)
+    base_price = db.Column(db.Float, nullable=False)
     category = db.Column(db.Enum("Bebida", "Comida", "Merch", name = "category"), nullable=False)
 
     def __repr__(self):
@@ -166,5 +167,5 @@ class Products(db.Model):
     def serialize(self):
         return{ 'id': self.id,
                 'name': self.name,
-                'base_prince': self.base_prince,
+                'base_price': self.base_price,
                 'category': self.category,}
