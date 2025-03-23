@@ -196,10 +196,10 @@ def book_ticket():
 
 
 def import_popular_movies():
-    url = "https://api.themoviedb.org/3/movie/popular?language=en-US&page=1"
+    url = f'{os.getenv("URL_TMDB")}/popular?language=en-US&page=1'
     headers = {
         "accept": "application/json",
-        "Authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJiNDQ4YjI1ODY5MjQxZGE4NWEwMWY4MmQwMTY3ODAxYyIsIm5iZiI6MTY5ODc0NDQxNy43MjMsInN1YiI6IjY1NDBjODYxNmNhOWEwMDBjYTE1OThiNSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.fZKKGfeQxhYjIx0tw29nkw683XR8vsFqcxYO3VV1eXw"
+        "Authorization": f'Bearer {os.getenv("TOKEN_API_TMDB")}'
     }
 
     response = requests.get(url, headers=headers)
