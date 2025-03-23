@@ -108,6 +108,7 @@ class Movies(db.Model):
     def serialize(self):
         return{ 'id': self.id,
                 'tmdb_id': self.tmdb_id,
+                'title': self.title,
                 'runtime': self.runtime,
                 'overview': self.overview,
                 'adult': self.adult,

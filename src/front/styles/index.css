@@ -2,5 +2,9 @@
     General Styles used on every website (Don't Repeat Yourself)
 */
 body{
-    background-color: rgba(0, 0, 0, 0.863);
+    background: linear-gradient(150deg, rgba(0, 0, 0, 1) 0%, rgba(31, 1, 56, 1) 68%, rgba(61, 3, 56, 1) 88%);
+    background-size: cover;
+    background-attachment: fixed; 
+    height: 100vh; 
+    margin: 0; 
 }
