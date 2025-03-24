@@ -67,7 +67,7 @@ export const Navbar = () => {
 								<>
 									<div className="d-flex">
 										<button onClick={handleAccess} type="button" className="btn btn-primary m-2 rounded-4">Login</button>
-										<Link to="" className="btn btn-secondary m-2 rounded-4">Register</Link>
+										<Link to="/register" className="btn btn-secondary m-2 rounded-4">Register</Link>
 									</div>
 								</>
 							)}

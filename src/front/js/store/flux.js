@@ -27,7 +27,18 @@ const getState = ({ getStore, getActions, setStore }) => {
 
 				const data = await response.json()
 				console.log("User registered successfuly: ", data)
-				return data
+				setStore({
+					isLogged: true,
+					isAdmin: data.results.is_admin,
+					user: data.results,
+					alert: { visible: true, text: "Register successful", background: "success" }
+				})
+				setTimeout(() => {
+					setStore({ alert: { visible: false, text: "", background: "" } });
+				}, 2000);
+				
+				localStorage.setItem('token', data.access_token)
+				localStorage.setItem('user', JSON.stringify(data.results))
 			},
 			getMessage: async () => {
 				const uri = `${process.env.BACKEND_URL}/api/hello`;

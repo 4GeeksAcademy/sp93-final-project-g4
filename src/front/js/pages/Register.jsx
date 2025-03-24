@@ -16,27 +16,25 @@ export const Register = () => {
         event.preventDefault();
 
         if (password !== confirmPassword) {
-            alert("Passwords do not match");
             return
         }
 
         const newUser = { name, email, password };
 
         actions.register(newUser)
-            .then(() => {
-                alert("Registration successful!");
-                navigate("/login")
-            })
-            .catch(error => {
-                console.error("error registering: ", error);
-                alert("Registration failed. Try again.")
-            });
+            // .then(() => {
+            //     navigate("/home")
+            // })
+            // .catch(error => {
+            //     console.error("error registering: ", error)
+            // });
+            navigate("/")
     }
 
 
     return(
         <div className="d-flex aling-items-center justify-content-center min-vh-100 mt-5 mb-5">
-            <from className="bg-white shadow-lg rounded-4 p-4 w-25" onSubmit={handleRegister}>
+            <form className="bg-white shadow-lg rounded-4 p-4 w-25" onSubmit={handleRegister}>
                 <h2 className="text-center mb-4">Create your account</h2>
                 
                 <div className="mb-3">
@@ -89,7 +87,7 @@ export const Register = () => {
 
                 <button type="submit" className="btn btn-primary w-100">Register</button>
                 <span className="">Already have an account? <a href="/login" className="text-info">Login</a></span>
-            </from>
+            </form>
         </div>
     )
 }
