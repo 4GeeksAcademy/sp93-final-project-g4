@@ -195,6 +195,34 @@ def book_ticket():
     return jsonify(response_body), 200
 
 
+@api.route('/user-detail', methods=['GET', 'PUT'])
+@jwt_required()
+def user_profile():
+    response_body = {}
+    current_user_email = get_jwt_identity()
+    user = db.session.execute(db.select(Users).where(Users.email==current_user_email)).scalar()
+      
+    if request.method == 'GET':
+        response_body['user_details'] = {'user_name': user.username,
+                                    'email': user.email,
+                                    'wallet': user.wallet,
+                                    'points': user.points}
+        return response_body, 200
+    
+    if request.method == 'PUT':
+        data = request.json
+        if 'username' in data:
+            user.username = data['username']
+        if 'email' in data:
+            user.email = data['email']
+        db.session.commit()
+        response_body['message'] = 'Your Profile is Updated Successfully!'
+        new_token = create_access_token(identity=user.email)
+        response_body['new_token'] = new_token
+
+        return response_body, 200
+    
+
 def import_movies():
     url = f'{os.getenv("URL_TMDB")}/now_playing'
     headers = {
