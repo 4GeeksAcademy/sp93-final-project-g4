@@ -10,12 +10,10 @@ export const Navbar = () => {
 
 	const handleAccess = () => {
 		if (store.isLogged) {
-			// actions.logout();
+			actions.logout();
 		} else {
 			navigate('/login');
 		}
-
-		navigate('/login')
 	}
 
 	return (
@@ -52,9 +50,28 @@ export const Navbar = () => {
 							</div>
 						</li>
 					</ul>
-					<div className="me-4">
-						<button onClick={handleAccess} type="button" className="btn btn-primary me-2 rounded-4">{store.isLogged ? 'Log out' : 'Login'}</button>
-						<button to="/register" className="btn btn-secondary rounded-4">Register</button>
+					<div className="me-4 dropdown">
+						<svg xmlns="http://www.w3.org/2000/svg" style={{ cursor: "pointer" }} width="30" height="30" fill="currentColor" className="bi bi-person-fill dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" viewBox="0 0 16 16">
+							<path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6" />
+						</svg>
+						<ul className="dropdown-menu dropdown-menu-end">
+							{store.isLogged ? (
+								<>
+									<li><a className="dropdown-item" href="#">Action</a></li>
+									<li><a className="dropdown-item" href="#">Another action</a></li>
+									<li><a className="dropdown-item" href="#">Something else here</a></li>
+									<li><hr className="dropdown-divider" /></li>
+									<button onClick={handleAccess} type="button" className="btn btn-danger m-2 rounded-4">Log out</button>
+								</>
+							) : (
+								<>
+									<div className="d-flex">
+										<button onClick={handleAccess} type="button" className="btn btn-primary m-2 rounded-4">Login</button>
+										<Link to="" className="btn btn-secondary m-2 rounded-4">Register</Link>
+									</div>
+								</>
+							)}
+						</ul>
 					</div>
 				</div>
 			</div>

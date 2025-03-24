@@ -8,3 +8,23 @@ body{
     height: 100vh; 
     margin: 0; 
 }
+
+.custom-alert {
+    position: fixed;
+    top: 20px;
+    right: -300px;
+    min-width: 250px;
+    z-index: 1050;
+    transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+    opacity: 0;
+}
+
+.custom-alert.show {
+    transform: translateX(-320px); 
+    opacity: 1;
+}
+
+.custom-alert.hide {
+    transform: translateX(0);
+    opacity: 0;
+}

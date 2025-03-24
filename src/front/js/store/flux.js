@@ -8,7 +8,8 @@ const getState = ({ getStore, getActions, setStore }) => {
 			isLogged: false,
 			isAdmin: false,
 			user: {},
-			movieList: []
+			movieList: [],
+			alert: {text: '', visible: false, background: 'primary'},
 		},
 		actions: {
 			register: async (newUser) => {
@@ -38,6 +39,16 @@ const getState = ({ getStore, getActions, setStore }) => {
 				const data = await response.json()
 				setStore({ message: data.message })
 			},
+			isUserLogged: () => {
+				const data = JSON.parse(localStorage.getItem('user'));
+				if (data) {
+					setStore({ 
+						isLogged: true, 
+						isAdmin: data.is_admin, 
+						user: data.first_name,
+					})
+				}
+			},
 			login: async (userLogin) => {
 				const response = await fetch(`${process.env.BACKEND_URL}/api/login`,
 					{
@@ -56,9 +67,26 @@ const getState = ({ getStore, getActions, setStore }) => {
 					isLogged: true,
 					isAdmin: data.results.is_admin,
 					user: data.results,
+					alert: { visible: true, text: "Login successful", background: "success" }
 				})
+				setTimeout(() => {
+					setStore({ alert: { visible: false, text: "", background: "" } });
+				}, 2000);
+				
 				localStorage.setItem('token', data.access_token)
 				localStorage.setItem('user', JSON.stringify(data.results))
+			},
+			logout: () => {
+				localStorage.removeItem('token');
+				localStorage.removeItem('user');
+				setStore({ 
+					user: {}, 
+					isLogged: false, 
+					isAdmin: false, 
+					alert: { visible: true, text: "Log out successful", background: "danger" } })
+				setTimeout(() => {
+					setStore({ alert: { visible: false, text: "", background: "" } });
+				}, 2000);
 			},
 			getPopularMovies: async () => {
 				const response = await fetch(`${process.env.BACKEND_URL}/api/movies`,
@@ -72,7 +100,6 @@ const getState = ({ getStore, getActions, setStore }) => {
 				}
 
 				const data = await response.json()
-				console.log('soy el flux', data.results)
 				setStore({ movieList: data.results})
 			},
 		}
