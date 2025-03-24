@@ -54,7 +54,7 @@ export const Navbar = () => {
 					</ul>
 					<div className="me-4">
 						<button onClick={handleAccess} type="button" className="btn btn-primary me-2 rounded-4">{store.isLogged ? 'Log out' : 'Login'}</button>
-						<Link to="" className="btn btn-secondary rounded-4">Register</Link>
+						<button to="/register" className="btn btn-secondary rounded-4">Register</button>
 					</div>
 				</div>
 			</div>

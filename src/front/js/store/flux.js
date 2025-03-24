@@ -11,6 +11,23 @@ const getState = ({ getStore, getActions, setStore }) => {
 			movieList: []
 		},
 		actions: {
+			register: async (newUser) => {
+				const response = await fetch(`${process.env.BACKEND_URL}/api/register`, 
+					{
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(newUser),
+					}
+				)
+				if (!response.ok) {
+					console.log('Error registering user', response.status, response.statusText)
+					throw new Error("Failed to register")
+				}
+
+				const data = await response.json()
+				console.log("User registered successfuly: ", data)
+				return data
+			},
 			getMessage: async () => {
 				const uri = `${process.env.BACKEND_URL}/api/hello`;
 				const response = await fetch(uri)
