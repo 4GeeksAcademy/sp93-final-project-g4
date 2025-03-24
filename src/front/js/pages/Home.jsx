@@ -1,27 +1,35 @@
 import React, { useContext } from "react";
 import { Context } from "../store/appContext.js";
-import rigoImageUrl from "../../img/rigo-baby.jpg";
 import "../../styles/home.css";
+import { CarouselHome } from "../component/Carousel.jsx";
 
 
 export const Home = () => {
-	const { store, actions } = useContext(Context);
+    const { store, actions } = useContext(Context);
+    return (
 
-	return (
-		<div className="text-center mt-5">
-			<h1>Hello Rigo!!</h1>
-			<p>
-				<img src={rigoImageUrl} />
-			</p>
-			<div className="alert alert-info">
-				{store.message || "Loading message from the backend (make sure your python backend is running)..."}
-			</div>
-			<p>
-				This boilerplate comes with lots of documentation:{" "}
-				<a href="https://start.4geeksacademy.com/starters/react-flask">
-					Read documentation
-				</a>
-			</p>
-		</div>
-	);
+        <div>
+            <CarouselHome />
+            <div className="container mt-5">
+                <h4> <span className="text-light fs-2">Cinema Center /</span> Cartelera</h4>
+                <hr className="border border-primary border-3 opacity-75" />
+                <div className="row row-cols-1 row-cols-md-4 g-4">
+                    {store.movieList.map((movie) => (
+                        <div className="col" key={movie.id}>
+                            <div className="card movie-card h-100">
+                                <img
+                                    src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+                                    alt={movie.title}
+                                    className="card-img-top movie-poster"
+                                />
+                                <div className="card-body">
+                                    <h5 className="card-title movie-title">{movie.title}</h5>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
 };

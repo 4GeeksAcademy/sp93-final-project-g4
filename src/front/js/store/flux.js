@@ -7,7 +7,8 @@ const getState = ({ getStore, getActions, setStore }) => {
 			message: null,
 			isLogged: false,
 			isAdmin: false,
-			user: {}
+			user: {},
+			movieList: []
 		},
 		actions: {
 			getMessage: async () => {
@@ -41,7 +42,22 @@ const getState = ({ getStore, getActions, setStore }) => {
 				})
 				localStorage.setItem('token', data.access_token)
 				localStorage.setItem('user', JSON.stringify(data.results))
-			}
+			},
+			getPopularMovies: async () => {
+				const response = await fetch(`${process.env.BACKEND_URL}/api/movies`,
+					{
+						method: 'GET'
+					})
+
+				if (!response.ok) {
+					console.log('Error', response.status, response.statusText)
+					return;
+				}
+
+				const data = await response.json()
+				console.log('soy el flux', data.results)
+				setStore({ movieList: data.results})
+			},
 		}
 	};
 };

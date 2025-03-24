@@ -70,7 +70,7 @@ def register():
 
 @api.route('/movies', methods=['GET'])
 def movies():
-    import_popular_movies()
+    import_movies()
     response_body = {}
     movies = db.session.execute(db.select(Movies)).scalars()
     response_body["message"] = "List of movies"
@@ -195,8 +195,8 @@ def book_ticket():
     return jsonify(response_body), 200
 
 
-def import_popular_movies():
-    url = f'{os.getenv("URL_TMDB")}/popular?language=en-US&page=1'
+def import_movies():
+    url = f'{os.getenv("URL_TMDB")}/now_playing'
     headers = {
         "accept": "application/json",
         "Authorization": f'Bearer {os.getenv("TOKEN_API_TMDB")}'
