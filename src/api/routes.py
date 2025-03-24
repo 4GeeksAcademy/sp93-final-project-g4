@@ -142,15 +142,16 @@ def store_cinema():
     response_body = {}
     current_user_email = get_jwt_identity()
     user = db.session.execute(db.select(Users).where(Users.email== current_user_email)).scalar()
+    # En lugar de booking debo buscar en Sales
+    bookings = db.session.execute(db.select(Bookings, Movies, ShowTimes, CinemaRooms)
+                                    .join(ShowTimes, Bookings.showtime_id == ShowTimes.id)
+                                    .join(Movies, ShowTimes.movie_id == Movies.id)
+                                    .join(CinemaRooms, ShowTimes.cinema_room_id == CinemaRooms.id)
+                                    .where(Bookings.user_id == user.id)).all()
+    if not bookings:
+        response_body['message'] = 'You need to reserve a ticket before you can buy in our Cinema Store'
+        return response_body, 400
     if request.method == 'GET':
-        bookings = db.session.execute(db.select(Bookings, Movies, ShowTimes, CinemaRooms)
-                                      .join(ShowTimes, Bookings.showtime_id == ShowTimes.id)
-                                      .join(Movies, ShowTimes.movie_id == Movies.id)
-                                      .join(CinemaRooms, ShowTimes.cinema_room_id == CinemaRooms.id)
-                                      .where(Bookings.user_id == user.id)).all()
-        if not bookings:
-            response_body['message'] = 'You need to reserve a ticket before you can buy in our Cinema Store'
-            return response_body, 400
         
         reserved_tickets = [{'selected_movie': movie.title,
                                 'movie_date': showtime.date_time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -170,9 +171,9 @@ def store_cinema():
         
         return jsonify(response_body), 200
         
-    elif request.method == 'POST':
+    if request.method == 'POST':
         data = request.json
-        selected_products = data.get('products', [])
+        selected_products = data.get('product_id', [])
         if not selected_products:
             response_body['message'] = "You don't have any snacks yet. Get Some!"
             return response_body, 400
@@ -250,6 +251,8 @@ def book_ticket():
 
     db.session.add(new_booking)
 
+    # Si es el 1er asiento que se compra, crear un sales, y crear un sales_line con quantity 1
+    # Si no es el 1ro, buscar el sales_line y sum +1 y sum el precio
     showtime.available -= 1
     db.session.commit()
 
@@ -258,6 +261,15 @@ def book_ticket():
 
     return jsonify(response_body), 200
 
+
+@api.route('/products', methods=['GET', 'POST'])
+# @jwt_required()
+def products():
+    response_body = {}
+    if request.method == 'GET':
+        results = db.session.execute(db.select(Products)).scalars()
+        response_body['results'] = [row.serialize() for row in results]
+        return response_body, 200
 
 def import_popular_movies():
     url = f'{os.getenv("URL_TMDB")}/popular?language=en-US&page=1'
