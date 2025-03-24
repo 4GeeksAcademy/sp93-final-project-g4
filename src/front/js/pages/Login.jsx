@@ -52,7 +52,7 @@ export const Login = () => {
                 <button type="submit" className="btn btn-primary w-100">
                     Login
                 </button>
-                <span className="">You don't have an account? <a href="/" className="text-info">Register</a></span>
+                <span className="">You don't have an account? <a href="/register" className="text-info">Register</a></span>
             </form>
         </div>
     )

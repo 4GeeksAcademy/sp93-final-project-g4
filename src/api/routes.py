@@ -64,7 +64,7 @@ def register():
     access_token = create_access_token(identity=user['email'], additional_claims=claims)
     response_body['message'] = 'New User Created'
     response_body['access_token'] = access_token
-    response_body['resuslts'] = user
+    response_body['results'] = user
     return response_body, 200
 
 
