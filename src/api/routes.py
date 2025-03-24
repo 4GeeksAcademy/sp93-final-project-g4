@@ -64,13 +64,13 @@ def register():
     access_token = create_access_token(identity=user['email'], additional_claims=claims)
     response_body['message'] = 'New User Created'
     response_body['access_token'] = access_token
-    response_body['resuslts'] = user
+    response_body['results'] = user
     return response_body, 200
 
 
 @api.route('/movies', methods=['GET'])
 def movies():
-    import_popular_movies()
+    import_movies()
     response_body = {}
     movies = db.session.execute(db.select(Movies)).scalars()
     response_body["message"] = "List of movies"
@@ -210,7 +210,6 @@ def store_cinema():
 def book_ticket():
     response_body = {}
     current_user_email = get_jwt_identity()
-
     user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
     if not user:
         return jsonify({'message': "User not found"}), 400
@@ -219,7 +218,6 @@ def book_ticket():
     showtime_id = data.get('showtime_id')
     row = data.get('row')
     col = data.get('col')
-    
 
     if showtime_id is None or row is None or col is None:
         return jsonify({'message': 'Missing required fields'}), 400
@@ -234,7 +232,6 @@ def book_ticket():
     cinema_room = showtime.cinema_room_to
     if row < 1 or row > cinema_room.cinema_row or col < 1 or col > cinema_room.cinema_col:
         return jsonify({'message': 'Invalid seat selection'}), 400
-    
     existing_booking = db.session.execute(
         db.select(Bookings).where(
             Bookings.showtime_id == showtime_id,
@@ -245,7 +242,6 @@ def book_ticket():
     
     if existing_booking:
         return jsonify({'message': 'The seat is already reserved'}), 400
-    
     new_booking = Bookings(
         user_id = user.id,
         showtime_id = showtime_id,
@@ -255,14 +251,13 @@ def book_ticket():
         )
 
     db.session.add(new_booking)
-    
     showtime.available -= 1
     db.session.commit()
-
     response_body['message'] = 'Booking successful'
     response_body['booking'] = new_booking.user_bookings()
 
     return jsonify(response_body), 200 
+
 
 
 @api.route('/products', methods=['GET', 'POST'])
@@ -274,16 +269,43 @@ def products():
         response_body['results'] = [row.serialize() for row in results]
         return response_body, 200
 
-def import_popular_movies():
-    url = f'{os.getenv("URL_TMDB")}/popular?language=en-US&page=1'
+
+
+@api.route('/user-detail', methods=['GET', 'PUT'])
+@jwt_required()
+def user_profile():
+    response_body = {}
+    current_user_email = get_jwt_identity()
+    user = db.session.execute(db.select(Users).where(Users.email==current_user_email)).scalar()
+      
+    if request.method == 'GET':
+        response_body['user_details'] = {'user_name': user.username,
+                                    'email': user.email,
+                                    'wallet': user.wallet,
+                                    'points': user.points}
+        return response_body, 200
+    
+    if request.method == 'PUT':
+        data = request.json
+        if 'username' in data:
+            user.username = data['username']
+        if 'email' in data:
+            user.email = data['email']
+        db.session.commit()
+        response_body['message'] = 'Your Profile is Updated Successfully!'
+        new_token = create_access_token(identity=user.email)
+        response_body['new_token'] = new_token
+        return response_body, 200
+    
+
+def import_movies():
+    url = f'{os.getenv("URL_TMDB")}/now_playing'
     headers = {
         "accept": "application/json",
         "Authorization": f'Bearer {os.getenv("TOKEN_API_TMDB")}'
     }
-
     response = requests.get(url, headers=headers)
     movies = response.json().get("results", [])
-    
 
     for movie in movies:
         tmdb_id = movie["id"]
@@ -295,7 +317,6 @@ def import_popular_movies():
         popularity = movie["popularity"]
         poster_path = movie["poster_path"]
         release_date = movie.get("release_date", None)
-
         movie_exist = db.session.execute(db.select(Movies).where(Movies.tmdb_id == tmdb_id)).scalar()
         if not movie_exist:
             new_movie = Movies(

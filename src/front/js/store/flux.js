@@ -7,9 +7,39 @@ const getState = ({ getStore, getActions, setStore }) => {
 			message: null,
 			isLogged: false,
 			isAdmin: false,
-			user: {}
+			user: {},
+			movieList: [],
+			alert: {text: '', visible: false, background: 'primary'},
 		},
 		actions: {
+			register: async (newUser) => {
+				const response = await fetch(`${process.env.BACKEND_URL}/api/register`, 
+					{
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(newUser),
+					}
+				)
+				if (!response.ok) {
+					console.log('Error registering user', response.status, response.statusText)
+					throw new Error("Failed to register")
+				}
+
+				const data = await response.json()
+				console.log("User registered successfuly: ", data)
+				setStore({
+					isLogged: true,
+					isAdmin: data.results.is_admin,
+					user: data.results,
+					alert: { visible: true, text: "Register successful", background: "success" }
+				})
+				setTimeout(() => {
+					setStore({ alert: { visible: false, text: "", background: "" } });
+				}, 2000);
+				
+				localStorage.setItem('token', data.access_token)
+				localStorage.setItem('user', JSON.stringify(data.results))
+			},
 			getMessage: async () => {
 				const uri = `${process.env.BACKEND_URL}/api/hello`;
 				const response = await fetch(uri)
@@ -19,6 +49,16 @@ const getState = ({ getStore, getActions, setStore }) => {
 				}
 				const data = await response.json()
 				setStore({ message: data.message })
+			},
+			isUserLogged: () => {
+				const data = JSON.parse(localStorage.getItem('user'));
+				if (data) {
+					setStore({ 
+						isLogged: true, 
+						isAdmin: data.is_admin, 
+						user: data.first_name,
+					})
+				}
 			},
 			login: async (userLogin) => {
 				const response = await fetch(`${process.env.BACKEND_URL}/api/login`,
@@ -38,10 +78,41 @@ const getState = ({ getStore, getActions, setStore }) => {
 					isLogged: true,
 					isAdmin: data.results.is_admin,
 					user: data.results,
+					alert: { visible: true, text: "Login successful", background: "success" }
 				})
+				setTimeout(() => {
+					setStore({ alert: { visible: false, text: "", background: "" } });
+				}, 2000);
+				
 				localStorage.setItem('token', data.access_token)
 				localStorage.setItem('user', JSON.stringify(data.results))
-			}
+			},
+			logout: () => {
+				localStorage.removeItem('token');
+				localStorage.removeItem('user');
+				setStore({ 
+					user: {}, 
+					isLogged: false, 
+					isAdmin: false, 
+					alert: { visible: true, text: "Log out successful", background: "danger" } })
+				setTimeout(() => {
+					setStore({ alert: { visible: false, text: "", background: "" } });
+				}, 2000);
+			},
+			getPopularMovies: async () => {
+				const response = await fetch(`${process.env.BACKEND_URL}/api/movies`,
+					{
+						method: 'GET'
+					})
+
+				if (!response.ok) {
+					console.log('Error', response.status, response.statusText)
+					return;
+				}
+
+				const data = await response.json()
+				setStore({ movieList: data.results})
+			},
 		}
 	};
 };
