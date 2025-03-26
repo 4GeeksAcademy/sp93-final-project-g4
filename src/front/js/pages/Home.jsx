@@ -2,10 +2,17 @@ import React, { useContext } from "react";
 import { Context } from "../store/appContext.js";
 import "../../styles/home.css";
 import { CarouselHome } from "../component/Carousel.jsx";
+import { useNavigate } from "react-router-dom";
 
 
 export const Home = () => {
     const { store, actions } = useContext(Context);
+    const navigate = useNavigate();
+
+    const handleMovies = () => {
+        navigate("/movies-details")
+    }
+
     return (
 
         <div>
@@ -13,9 +20,9 @@ export const Home = () => {
             <div className="container mt-5">
                 <h4> <span className="text-light fs-2">Cinema Center /</span> Cartelera</h4>
                 <hr className="border border-primary border-3 opacity-75" />
-                <div className="row row-cols-1 row-cols-md-4 g-4">
+                <div className="row row-cols-1 row-cols-md-4 g-4"  >
                     {store.movieList.map((movie) => (
-                        <div className="col" key={movie.id}>
+                        <div className="col" key={movie.id} onClick={handleMovies}>
                             <div className="card movie-card h-100">
                                 <img
                                     src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
