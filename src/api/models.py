@@ -33,12 +33,13 @@ class Bookings(db.Model):
     user_to = db.relationship('Users', foreign_keys=[user_id], backref=db.backref('user_booking'), lazy='select')
     showtime_id = db.Column(db.Integer, db.ForeignKey('show_times.id'), nullable=False)
     showtime_to = db.relationship('ShowTimes', foreign_keys=[showtime_id], backref=db.backref('showtime_booking'), lazy='select')
-    sale_id = db.Column(db.Integer, db.ForeignKey('sales.id'))
     col = db.Column(db.Integer)
     row = db.Column(db.Integer)
+    sales = db.relationship('Sales', backref='booking_sales', lazy=True)
+    
 
     def __repr__(self):
-        return f'<Booking: {self.id}> - user: {self.user_id}'
+        return f'<Booking user id: {self.user_id}>'
     
     def user_bookings(self):
         return {
@@ -48,7 +49,8 @@ class Bookings(db.Model):
             "booking_price": self.booking_price,
             "movie_title": self.showtime_to.movie_to.title,
             "showtime_date":self.showtime_to.date_time.strftime("%d/%m/%Y %H:%M"),
-            "cinema_room_name": self.showtime_to.cinema_room_to.name}
+            "cinema_room_name": self.showtime_to.cinema_room_to.name,
+            "sales_id": [sale.id for sale in self.sales]}
 
 class CinemaRooms(db.Model):
     __tablename__ = "cinema_rooms"
@@ -77,7 +79,7 @@ class ShowTimes(db.Model):
     movie_to = db.relationship('Movies', foreign_keys=[movie_id], backref=db.backref('showtime_movie'), lazy='select')
     cinema_room_id = db.Column(db.Integer, db.ForeignKey('cinema_rooms.id'), nullable=False)
     cinema_room_to = db.relationship('CinemaRooms', foreign_keys=[cinema_room_id], backref=db.backref('showtime_room'), lazy='select')
-    available = db.Column(db.Integer)
+    available = db.Column(db.Integer, default=25)
 
     def __repr__(self):
         return f'<Show Time: date time: {self.date_time} - movie : {self.movie_id}'
@@ -125,41 +127,40 @@ class Sales(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     user_to = db.relationship('Users', foreign_keys=[user_id], backref=db.backref('sales'), lazy='select')
     sales_lines_to = db.relationship('SalesLines', backref='sale', lazy="select")
-    booking_user_to = db.relationship('Bookings', backref='booking', lazy="select")
+    booking_id = db.Column(db.Integer, db.ForeignKey('bookings.id'), nullable=True)
 
     def __repr__(self):
         return f'<Sales: Sale Date{self.sale_date}'
     
     def serialize(self):
-        return{ 'sale_date': self.sale_date.strftime("%d/%m/%Y %H:%M"),
+        return{'sale_id': self.id,
+                'sale_date': self.sale_date.strftime("%d/%m/%Y %H:%M"),
                 'sales_lines': [sale_line.serialize() for sale_line in self.sales_lines_to],
-                'bookings': [booking.user_bookings() for booking in self.booking_user_to],
                 'discount': self.discount,
-                'total': self.total,
-                'user_id': self.user_id,}
+                'total': self.total,}
 
 class SalesLines(db.Model):
     __tablename__ = "sales_lines"
     id = db.Column(db.Integer, primary_key=True)
     quantity = db.Column(db.Integer)
-    unit_prince = db.Column(db.Float)
+    unit_price = db.Column(db.Float)
     sale_id = db.Column(db.Integer, db.ForeignKey('sales.id'))
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'))
-    product_to = db.relationship('Products', foreign_keys=[product_id], backref=db.backref('sales_lines'), lazy='select')
+    product_to = db.relationship('Products', foreign_keys=[product_id], backref=db.backref('sales_lines', lazy='select'))
 
     def __repr__(self):
         return f'<Sales Lines: {self.id}'
     
     def serialize(self):
         return{ 'quantity': self.quantity,
-                'unit_prince': self.unit_prince,
+                'unit_price': self.unit_price,
                 'product': self.product_to.name}
     
 class Products(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(), nullable=False)
-    base_prince = db.Column(db.Float, nullable=False)
-    category = db.Column(db.Enum("Bebida", "Comida", "Merch", name = "category"), nullable=False)
+    base_price = db.Column(db.Float, nullable=False)
+    category = db.Column(db.Enum("Bebida", "Comida", "Merch", "Cinema Ticket", name = "category"), nullable=False)
 
     def __repr__(self):
         return f'<Product: {self.name}'
@@ -167,5 +168,5 @@ class Products(db.Model):
     def serialize(self):
         return{ 'id': self.id,
                 'name': self.name,
-                'base_prince': self.base_prince,
+                'base_price': self.base_price,
                 'category': self.category,}
