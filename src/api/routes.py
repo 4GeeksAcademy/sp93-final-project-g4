@@ -11,6 +11,7 @@ from flask_jwt_extended import create_access_token
 from flask_jwt_extended import jwt_required
 from flask_jwt_extended import get_jwt_identity
 from flask_jwt_extended import get_jwt
+from datetime import datetime
 
 
 api = Blueprint('api', __name__)
@@ -78,26 +79,6 @@ def movies():
     return response_body, 200
 
 
-@api.route('/user-bookings', methods=['GET'])
-@jwt_required()
-def user_bookings():
-    response_body = {}
-    current_user = get_jwt_identity()
-
-    user = db.session.execute(db.select(Users).where(Users.email==current_user)).scalar()
-    bookings = db.session.execute(
-        db.select(Bookings)
-        .join(ShowTimes, Bookings.showtime_id == ShowTimes.id)
-        .join(Movies, ShowTimes.movie_id == Movies.id)
-        .join(CinemaRooms, ShowTimes.cinema_room_id == CinemaRooms.id)
-        .where(Bookings.user_id == user.id)
-    ).scalars()
-
-    response_body['message'] = "List de bookings"
-    response_body['results'] = [ booking.user_bookings() for booking in bookings]
-    return response_body, 200
-
-
 @api.route('/movies/<int:movie_id>', methods=['GET'])
 def get_movie_details(movie_id):
     response_body = {}
@@ -114,26 +95,80 @@ def get_movie_details(movie_id):
     return jsonify(response_body), 200 
 
 
-@api.route('/sales', methods=['GET'])
+@api.route('/store-cinema', methods=['GET', 'POST'])
 @jwt_required()
-def get_sales():
+def store_cinema():
     response_body = {}
-    current_user = get_jwt_identity()
+    current_user_email = get_jwt_identity()
+    user = db.session.execute(db.select(Users).where(Users.email== current_user_email)).scalar()
 
-    user = db.session.execute(db.select(Users).where(Users.email==current_user)).scalar()
+    bookings = user_bookings(user.id)
 
-    if not user:
-        response_body['message'] = "User dont found"
-        return response_body, 404
+    if not bookings:
+        response_body['message'] = 'You need to reserve a ticket before you can buy in our Cinema Store'
+        return response_body, 400
+    if request.method == 'GET':
 
-    sales = db.session.execute(db.select(Sales)
-                               .where(Sales.user_id == user.id)
-                               ).scalars()
+        response_body = {
+            "message": "Welcome to our Cinema Store! Here are your tickets:",
+            "your tickets": bookings,
+            "sales": get_sales(user.id)
+        }
 
-    response_body["message"] = "List of sales"
-    response_body["results"] = [sale.serialize() for sale in sales]
+        return response_body, 200
+    
+    if request.method == 'POST':
+        data = request.json
+        selected_products = data.get('products', [])
+        booking_id = data.get('booking_id')
 
-    return jsonify(response_body), 200
+        bookings = db.session.execute(db.select(Bookings).where(Bookings.id == booking_id, Bookings.user_id == user.id)).scalar()
+        
+        total = sum([db.session.execute(db.select(Products.base_price)
+                                        .where(Products.id == product.get('id')))
+                                        .scalar() * product.get('quantity') 
+                                        for product in selected_products])
+
+        if not bookings or bookings.showtime_to.date_time < datetime.utcnow(): 
+            response_body['message'] = "The reservation does not exist or has expired"
+            return response_body, 400
+
+        if user.wallet < total:
+            return {"message": "You don't have enough money in your wallet"}, 400
+
+        user.wallet -= total
+
+        new_sale = Sales(user_id=user.id, total=total)
+        db.session.add(new_sale)
+
+        products_detail = []
+
+        for product in selected_products:
+            product_selected = db.session.execute(db.select(Products).where(Products.id == product.get('id'))).scalar()
+            if product_selected:
+                new_sale_line = SalesLines(
+                    product_id=product_selected.id,
+                    quantity=product.get('quantity'),
+                    unit_price=product_selected.base_price,
+                    sale_id=new_sale.id
+                )
+                db.session.add(new_sale_line)
+
+                products_detail.append({
+                    'name': product_selected.name,
+                    'quantity': product.get('quantity'),
+                    'unit_price': product_selected.base_price,
+                })
+
+        bookings.sales.append(new_sale)  
+        
+        db.session.commit()
+
+        response_body = {
+            "message": "Your purchase is done! Here's your resume: ",
+            "results": products_detail
+        }
+        return response_body, 201
 
 
 @api.route('/book-ticket', methods=['POST'])
@@ -141,7 +176,6 @@ def get_sales():
 def book_ticket():
     response_body = {}
     current_user_email = get_jwt_identity()
-
     user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
     if not user:
         return jsonify({'message': "User not found"}), 400
@@ -164,7 +198,6 @@ def book_ticket():
     cinema_room = showtime.cinema_room_to
     if row < 1 or row > cinema_room.cinema_row or col < 1 or col > cinema_room.cinema_col:
         return jsonify({'message': 'Invalid seat selection'}), 400
-    
     existing_booking = db.session.execute(
         db.select(Bookings).where(
             Bookings.showtime_id == showtime_id,
@@ -175,24 +208,31 @@ def book_ticket():
     
     if existing_booking:
         return jsonify({'message': 'The seat is already reserved'}), 400
-    
     new_booking = Bookings(
         user_id = user.id,
         showtime_id = showtime_id,
         row = row,
         col = col,
-        booking_price = 5  # Preguntar el precio que quieren
-    )
+        booking_price = 5,
+        )
 
     db.session.add(new_booking)
-
     showtime.available -= 1
     db.session.commit()
-
     response_body['message'] = 'Booking successful'
     response_body['booking'] = new_booking.user_bookings()
 
-    return jsonify(response_body), 200
+    return jsonify(response_body), 200 
+
+
+@api.route('/products', methods=['GET', 'POST'])
+# @jwt_required()
+def products():
+    response_body = {}
+    if request.method == 'GET':
+        results = db.session.execute(db.select(Products)).scalars()
+        response_body['results'] = [row.serialize() for row in results]
+        return response_body, 200
 
 
 @api.route('/user-detail', methods=['GET', 'PUT'])
@@ -219,7 +259,6 @@ def user_profile():
         response_body['message'] = 'Your Profile is Updated Successfully!'
         new_token = create_access_token(identity=user.email)
         response_body['new_token'] = new_token
-
         return response_body, 200
     
 
@@ -229,10 +268,8 @@ def import_movies():
         "accept": "application/json",
         "Authorization": f'Bearer {os.getenv("TOKEN_API_TMDB")}'
     }
-
     response = requests.get(url, headers=headers)
     movies = response.json().get("results", [])
-    
 
     for movie in movies:
         tmdb_id = movie["id"]
@@ -244,7 +281,6 @@ def import_movies():
         popularity = movie["popularity"]
         poster_path = movie["poster_path"]
         release_date = movie.get("release_date", None)
-
         movie_exist = db.session.execute(db.select(Movies).where(Movies.tmdb_id == tmdb_id)).scalar()
         if not movie_exist:
             new_movie = Movies(
@@ -262,3 +298,21 @@ def import_movies():
     db.session.commit()
 
 
+def get_sales(user_id):
+    sales = db.session.execute(db.select(Sales)
+                               .where(Sales.user_id == user_id)
+                               ).scalars()
+    return [sale.serialize() for sale in sales]
+
+
+def user_bookings(user_id):
+
+    bookings = db.session.execute(
+        db.select(Bookings)
+        .join(ShowTimes, Bookings.showtime_id == ShowTimes.id)
+        .join(Movies, ShowTimes.movie_id == Movies.id)
+        .join(CinemaRooms, ShowTimes.cinema_room_id == CinemaRooms.id)
+        .where(Bookings.user_id == user_id)
+    ).scalars()
+
+    return [ booking.user_bookings() for booking in bookings]
