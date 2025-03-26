@@ -15,6 +15,7 @@ export const Navbar = () => {
 			navigate('/login');
 		}
 	}
+	const user = store.user || {};
 
 	return (
 		<nav className="navbar navbar-expand-lg bg-dark" data-bs-theme="dark">
@@ -57,9 +58,10 @@ export const Navbar = () => {
 						<ul className="dropdown-menu dropdown-menu-end">
 							{store.isLogged ? (
 								<>
-									<li><a className="dropdown-item" href="#">Action</a></li>
-									<li><a className="dropdown-item" href="#">Another action</a></li>
-									<li><a className="dropdown-item" href="#">Something else here</a></li>
+									<li className="dropdown-item">{user.username}</li>
+									<li className="dropdown-item">{user.email}</li>
+									<li className="dropdown-item">Wallet: {user.wallet}</li>
+									<li className="dropdown-item">Points: {user.points}</li>
 									<li><hr className="dropdown-divider" /></li>
 									<button onClick={handleAccess} type="button" className="btn btn-danger m-2 rounded-4">Log out</button>
 								</>
