@@ -33,9 +33,9 @@ class Bookings(db.Model):
     user_to = db.relationship('Users', foreign_keys=[user_id], backref=db.backref('user_booking'), lazy='select')
     showtime_id = db.Column(db.Integer, db.ForeignKey('show_times.id'), nullable=False)
     showtime_to = db.relationship('ShowTimes', foreign_keys=[showtime_id], backref=db.backref('showtime_booking'), lazy='select')
-    sale_id = db.Column(db.Integer, db.ForeignKey('sales.id'))
     col = db.Column(db.Integer)
     row = db.Column(db.Integer)
+    sales = db.relationship('Sales', backref='booking_sales', lazy=True)
     
 
     def __repr__(self):
@@ -49,7 +49,8 @@ class Bookings(db.Model):
             "booking_price": self.booking_price,
             "movie_title": self.showtime_to.movie_to.title,
             "showtime_date":self.showtime_to.date_time.strftime("%d/%m/%Y %H:%M"),
-            "cinema_room_name": self.showtime_to.cinema_room_to.name}
+            "cinema_room_name": self.showtime_to.cinema_room_to.name,
+            "sales_id": [sale.id for sale in self.sales]}
 
 class CinemaRooms(db.Model):
     __tablename__ = "cinema_rooms"
@@ -126,18 +127,17 @@ class Sales(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     user_to = db.relationship('Users', foreign_keys=[user_id], backref=db.backref('sales'), lazy='select')
     sales_lines_to = db.relationship('SalesLines', backref='sale', lazy="select")
-    booking_user_to = db.relationship('Bookings', backref='booking', lazy="select")
+    booking_id = db.Column(db.Integer, db.ForeignKey('bookings.id'), nullable=True)
 
     def __repr__(self):
         return f'<Sales: Sale Date{self.sale_date}'
     
     def serialize(self):
-        return{ 'sale_date': self.sale_date.strftime("%d/%m/%Y %H:%M"),
-                """ 'sales_lines': [sale_line.serialize() for sale_line in self.sales_lines_to], """
-                'bookings': [booking.user_bookings() for booking in self.booking_user_to],
+        return{'sale_id': self.id,
+                'sale_date': self.sale_date.strftime("%d/%m/%Y %H:%M"),
+                'sales_lines': [sale_line.serialize() for sale_line in self.sales_lines_to],
                 'discount': self.discount,
-                'total': self.total,
-                'user_id': self.user_id,}
+                'total': self.total,}
 
 class SalesLines(db.Model):
     __tablename__ = "sales_lines"

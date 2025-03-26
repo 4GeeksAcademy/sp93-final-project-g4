@@ -11,6 +11,7 @@ from flask_jwt_extended import create_access_token
 from flask_jwt_extended import jwt_required
 from flask_jwt_extended import get_jwt_identity
 from flask_jwt_extended import get_jwt
+from datetime import datetime
 
 
 api = Blueprint('api', __name__)
@@ -78,26 +79,6 @@ def movies():
     return response_body, 200
 
 
-""" @api.route('/user-bookings', methods=['GET'])
-@jwt_required()
-def user_bookings():
-    response_body = {}
-    current_user = get_jwt_identity()
-
-    user = db.session.execute(db.select(Users).where(Users.email==current_user)).scalar()
-    bookings = db.session.execute(
-        db.select(Bookings)
-        .join(ShowTimes, Bookings.showtime_id == ShowTimes.id)
-        .join(Movies, ShowTimes.movie_id == Movies.id)
-        .join(CinemaRooms, ShowTimes.cinema_room_id == CinemaRooms.id)
-        .where(Bookings.user_id == user.id)
-    ).scalars()
-
-    response_body['message'] = "List de bookings"
-    response_body['results'] = [ booking.user_bookings() for booking in bookings]
-    return response_body, 200 """
-
-
 @api.route('/movies/<int:movie_id>', methods=['GET'])
 def get_movie_details(movie_id):
     response_body = {}
@@ -114,96 +95,81 @@ def get_movie_details(movie_id):
     return jsonify(response_body), 200 
 
 
-@api.route('/sales', methods=['GET'])
-@jwt_required()
-def get_sales():
-    response_body = {}
-    current_user = get_jwt_identity()
-
-    user = db.session.execute(db.select(Users).where(Users.email==current_user)).scalar()
-
-    if not user:
-        response_body['message'] = "User dont found"
-        return response_body, 404
-
-    sales = db.session.execute(db.select(Sales)
-                               .where(Sales.user_id == user.id)
-                               ).scalars()
-
-    response_body["message"] = "List of sales"
-    response_body["results"] = [sale.serialize() for sale in sales]
-
-    return jsonify(response_body), 200
-
-
 @api.route('/store-cinema', methods=['GET', 'POST'])
 @jwt_required()
 def store_cinema():
     response_body = {}
     current_user_email = get_jwt_identity()
     user = db.session.execute(db.select(Users).where(Users.email== current_user_email)).scalar()
-    
-    bookings = db.session.execute(db.select(Bookings, Movies, ShowTimes, CinemaRooms)
-                                    .join(ShowTimes, Bookings.showtime_id == ShowTimes.id)
-                                    .join(Movies, ShowTimes.movie_id == Movies.id)
-                                    .join(CinemaRooms, ShowTimes.cinema_room_id == CinemaRooms.id)
-                                    .where(Bookings.user_id == user.id)).all()
+
+    bookings = user_bookings(user.id)
+
     if not bookings:
         response_body['message'] = 'You need to reserve a ticket before you can buy in our Cinema Store'
         return response_body, 400
     if request.method == 'GET':
-        reserved_tickets = [{'selected_movie': movie.title,
-                                'movie_date': showtime.date_time.strftime("%Y-%m-%d %H:%M:%S"),
-                                'cinema_room': cinema_room.name,
-                                'col': booking.col,
-                                'row': booking.row,
-                                'price': booking.booking_price} for booking, movie, showtime, cinema_room in bookings]
-            
-        sales_query = db.session.execute(db.select(Sales).where(Sales.user_id == user.id)).scalars().all()
-
-        sales_group = {}
-        for sale in sales_query:
-            sale_total = sum(sale_line.unit_price * sale_line.quantity for sale_line in sale.sales_lines_to)
-            if sale.id not in sales_group:
-                sales_group[sale.id] ={"sale_total": sale_total,
-                                       "sales_lines": []}
-            for sale_line in sale.sales_lines_to:
-                sales_group[sale.id]["sales_lines"].append({'your_snacks': sale_line.product_to.name,
-                                                            'quantity': sale_line.quantity,
-                                                            'price': sale_line.unit_price})
-        sale_list=list(sales_group.values())
 
         response_body = {
-            "message": "Wellcome to our Cinema Store! This are your tickets:",
-            "your tickets": reserved_tickets,
-            "sales":sale_list}
-        
+            "message": "Welcome to our Cinema Store! Here are your tickets:",
+            "your tickets": bookings,
+            "sales": get_sales(user.id)
+        }
+
         return response_body, 200
-        
+    
     if request.method == 'POST':
         data = request.json
-        selected_products = data.get('product_id', [])
-                
-        total = sum([product.get('price') * product.get('quantity') for product in selected_products])
+        selected_products = data.get('products', [])
+        booking_id = data.get('booking_id')
+
+        bookings = db.session.execute(db.select(Bookings).where(Bookings.id == booking_id, Bookings.user_id == user.id)).scalar()
+        
+        total = sum([db.session.execute(db.select(Products.base_price)
+                                        .where(Products.id == product.get('id')))
+                                        .scalar() * product.get('quantity') 
+                                        for product in selected_products])
+
+        if not bookings or bookings.showtime_to.date_time < datetime.utcnow(): 
+            response_body['message'] = "The reservation does not exist or has expired"
+            return response_body, 400
+
+        if user.wallet < total:
+            return {"message": "You don't have enough money in your wallet"}, 400
+
+        user.wallet -= total
+
         new_sale = Sales(user_id=user.id, total=total)
         db.session.add(new_sale)
-        db.session.commit()
+
+        products_detail = []
 
         for product in selected_products:
-            product_selected = db.session.execute(db.select(Products).where(Products.name==product.get('name'))).scalar()
+            product_selected = db.session.execute(db.select(Products).where(Products.id == product.get('id'))).scalar()
             if product_selected:
-                new_sale_line = SalesLines(product_id=product_selected.id,
-                                           quantity=product.get('quantity'),
-                                           sale_id=new_sale.id)
+                new_sale_line = SalesLines(
+                    product_id=product_selected.id,
+                    quantity=product.get('quantity'),
+                    unit_price=product_selected.base_price,
+                    sale_id=new_sale.id
+                )
                 db.session.add(new_sale_line)
-        db.session.commit()
-        products_detail = [{'name': product.get('name'),
-                            'quantity': product.get('quantity'),
-                            'price':product.get('price')}for product in selected_products]
 
-        response_body['message'] = "Your purchase is done! Here's your resume: "
-        response_body['results'] = products_detail
+                products_detail.append({
+                    'name': product_selected.name,
+                    'quantity': product.get('quantity'),
+                    'unit_price': product_selected.base_price,
+                })
+
+        bookings.sales.append(new_sale)  
+        
+        db.session.commit()
+
+        response_body = {
+            "message": "Your purchase is done! Here's your resume: ",
+            "results": products_detail
+        }
         return response_body, 201
+
 
 @api.route('/book-ticket', methods=['POST'])
 @jwt_required()
@@ -259,7 +225,6 @@ def book_ticket():
     return jsonify(response_body), 200 
 
 
-
 @api.route('/products', methods=['GET', 'POST'])
 # @jwt_required()
 def products():
@@ -268,7 +233,6 @@ def products():
         results = db.session.execute(db.select(Products)).scalars()
         response_body['results'] = [row.serialize() for row in results]
         return response_body, 200
-
 
 
 @api.route('/user-detail', methods=['GET', 'PUT'])
@@ -299,10 +263,10 @@ def user_profile():
     
 
 def import_movies():
-    url = f'{os.getenv("URL_TMDB")}/now_playing'
+    url = f'https://api.themoviedb.org/3/movie/now_playing'
     headers = {
         "accept": "application/json",
-        "Authorization": f'Bearer {os.getenv("TOKEN_API_TMDB")}'
+        "Authorization": f'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJiNDQ4YjI1ODY5MjQxZGE4NWEwMWY4MmQwMTY3ODAxYyIsIm5iZiI6MTY5ODc0NDQxNy43MjMsInN1YiI6IjY1NDBjODYxNmNhOWEwMDBjYTE1OThiNSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.fZKKGfeQxhYjIx0tw29nkw683XR8vsFqcxYO3VV1eXw'
     }
     response = requests.get(url, headers=headers)
     movies = response.json().get("results", [])
@@ -334,3 +298,21 @@ def import_movies():
     db.session.commit()
 
 
+def get_sales(user_id):
+    sales = db.session.execute(db.select(Sales)
+                               .where(Sales.user_id == user_id)
+                               ).scalars()
+    return [sale.serialize() for sale in sales]
+
+
+def user_bookings(user_id):
+
+    bookings = db.session.execute(
+        db.select(Bookings)
+        .join(ShowTimes, Bookings.showtime_id == ShowTimes.id)
+        .join(Movies, ShowTimes.movie_id == Movies.id)
+        .join(CinemaRooms, ShowTimes.cinema_room_id == CinemaRooms.id)
+        .where(Bookings.user_id == user_id)
+    ).scalars()
+
+    return [ booking.user_bookings() for booking in bookings]
