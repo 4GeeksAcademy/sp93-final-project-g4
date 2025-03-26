@@ -263,10 +263,10 @@ def user_profile():
     
 
 def import_movies():
-    url = f'https://api.themoviedb.org/3/movie/now_playing'
+    url = f'{os.getenv("URL_TMDB")}/now_playing'
     headers = {
         "accept": "application/json",
-        "Authorization": f'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJiNDQ4YjI1ODY5MjQxZGE4NWEwMWY4MmQwMTY3ODAxYyIsIm5iZiI6MTY5ODc0NDQxNy43MjMsInN1YiI6IjY1NDBjODYxNmNhOWEwMDBjYTE1OThiNSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.fZKKGfeQxhYjIx0tw29nkw683XR8vsFqcxYO3VV1eXw'
+        "Authorization": f'Bearer {os.getenv("TOKEN_API_TMDB")}'
     }
     response = requests.get(url, headers=headers)
     movies = response.json().get("results", [])
