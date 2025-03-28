@@ -192,10 +192,10 @@ def book_ticket():
     if not showtime:
         return jsonify({'message': 'Showtime not found'}), 404
     
-    if showtime.available <= 0:
-        return jsonify({'message': 'No ticket available'}), 400
+    """ if showtime.available <= 0:
+        return jsonify({'message': 'No ticket available'}), 400 
     
-    cinema_room = showtime.cinema_room_to
+     cinema_room = showtime.cinema_room_to
     if row < 1 or row > cinema_room.cinema_row or col < 1 or col > cinema_room.cinema_col:
         return jsonify({'message': 'Invalid seat selection'}), 400
     existing_booking = db.session.execute(
@@ -207,7 +207,23 @@ def book_ticket():
     ).scalar()
     
     if existing_booking:
-        return jsonify({'message': 'The seat is already reserved'}), 400
+        return jsonify({'message': 'The seat is already reserved'}), 400 
+    new_booking = Bookings(
+        user_id = user.id,
+        showtime_id = showtime_id,
+        row = row,
+        col = col,
+        booking_price = 5,
+        )"""
+    if {"row":row, "col":col in showtime.get_reserved_seats}:
+        response_body['message'] = f'The seat is already reserved'
+        return response_body, 400
+    
+    cinema_room = showtime.cinema_room_to
+    
+    if row < 1 or row > cinema_room.cinema_row or col < 1 or col > cinema_room.cinema_col:
+        return jsonify({'message': 'Invalid seat selection'}), 400
+    
     new_booking = Bookings(
         user_id = user.id,
         showtime_id = showtime_id,
@@ -217,12 +233,31 @@ def book_ticket():
         )
 
     db.session.add(new_booking)
+    showtime.reserve_seat(row, col)
     showtime.available -= 1
     db.session.commit()
     response_body['message'] = 'Booking successful'
     response_body['booking'] = new_booking.user_bookings()
 
     return jsonify(response_body), 200 
+
+@api.route('/showtime/<int:showtime_id>/seats', methods=['GET'])
+def get_showtime_seat(showtime_id):
+    response_body= {}
+    showtime = db.session.execute(db.select(ShowTimes).where(ShowTimes.id == showtime_id)).scalar()
+
+    if not showtime:
+        response_body['message']=f'Showtime not found'
+        return response_body,404
+    
+    cinema_room = showtime.cinema_room_to
+
+    response_body['cinema_row']= cinema_room.cinema_row
+    response_body['cinema_col']= cinema_room.cinema_col
+    response_body['reserve_seat'] = showtime.get_reserved_seats()
+    return response_body, 200
+
+    
 
 
 @api.route('/products', methods=['GET', 'POST'])

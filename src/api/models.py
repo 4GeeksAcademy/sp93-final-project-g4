@@ -1,5 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+import json 
 
 db = SQLAlchemy()
 
@@ -80,15 +81,28 @@ class ShowTimes(db.Model):
     cinema_room_id = db.Column(db.Integer, db.ForeignKey('cinema_rooms.id'), nullable=False)
     cinema_room_to = db.relationship('CinemaRooms', foreign_keys=[cinema_room_id], backref=db.backref('showtime_room'), lazy='select')
     available = db.Column(db.Integer, default=25)
+    reserved_seats = db.Column(db.Text(), default="[]")
 
     def __repr__(self):
         return f'<Show Time: date time: {self.date_time} - movie : {self.movie_id}'
     
+    def get_reserved_seats(self):
+        return json.loads(self.reserved_seats) # Aqui se devuelve el array que es un json y lo duevuelve en str (===> "json") y el load lo transdorma en dict
+
+    def reserve_seat(self, row, col):
+        reserve = self.get_reserved_seats()
+        reserve.append({
+            "row": row,
+            "col": col
+        })
+        self.reserved_seats = json.dump(reserve) # Aqui el dump devuelve el dict en forma de json
+
     def serialize(self):
         return{ 'id': self.id,
                 'date_time': self.date_time,
                 'movie_id': self.movie_id,
                 'cinema_room_id': self.cinema_room_id,
+                'reserved_seats': self.reserved_seats,
                 'available': self.available}
     
 
