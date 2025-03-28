@@ -6,12 +6,13 @@ import { BackendURL } from "./component/BackendURL.jsx";
 import ScrollToTop from "./component/ScrollToTop.jsx";
 import { Footer } from "./component/Footer.jsx";
 import { Navbar } from "./component/Navbar.jsx";
+import { Alert } from "./component/Alert.jsx";
 // Custom Pages or Views
 import { Home } from "./pages/Home.jsx";
 import { Error404 } from "./pages/Error404.jsx";
 import { Login } from "./pages/Login.jsx";
 import { Register } from "./pages/Register.jsx";
-import { Alert } from "./component/Alert.jsx";
+import { BookingSesion } from "./pages/BookingSesion.jsx";
 
 
 //Create your first component
@@ -31,6 +32,7 @@ const Layout = () => {
                         <Route element={<Home />} path="/" />
                         <Route element={<Login />} path="/login" />
                         <Route element={<Register />} path="/register" />
+                        <Route element={<BookingSesion />} path="/booking-sesion" />
                         <Route element={<Error404/>} path='*'/>
                     </Routes>
                     <Footer />
