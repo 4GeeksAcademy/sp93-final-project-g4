@@ -11,7 +11,7 @@ export const Home = () => {
         <div>
             <CarouselHome />
             <div className="container mt-5">
-                <h4> <span className="text-light fs-2">Cinema Center /</span> Cartelera</h4>
+                <h4> <span className="text-light fs-2">Cinema Center /</span> New Movies</h4>
                 <hr className="border border-primary border-3 opacity-75" />
                 <div className="row row-cols-1 row-cols-md-4 g-4">
                     {store.movieList.map((movie) => (
