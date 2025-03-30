@@ -179,18 +179,15 @@ def book_ticket():
     user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
     if not user:
         return jsonify({'message': "User not found"}), 400
-
-    data = request.json
-    print('soy el data de book_ticket:', data)
-    showtime_id = data.get('showtime_id')
     
+    data = request.json
+    showtime_id = data.get('showtime_id')
     seats_booked = data.get('seats_booked', [])
 
     if showtime_id is None or not seats_booked:
         return jsonify({'message': 'Missing required fields'}), 400
 
     showtime = db.session.execute(db.select(ShowTimes).where(ShowTimes.id == showtime_id)).scalar()
-
     if not showtime:
         return jsonify({'message': 'Showtime not found'}), 404
     
@@ -206,7 +203,6 @@ def book_ticket():
         
         showtime.reserve_seat(row, col)
         showtime.available -= 1
-
          # Crear la reserva
         new_booking = Bookings(
             user_id=user.id,
@@ -221,7 +217,6 @@ def book_ticket():
     
     response_body['message'] = 'Booking successful'
     response_body['booking'] = new_booking.user_bookings()
-        
     return jsonify(response_body), 200
 
 
