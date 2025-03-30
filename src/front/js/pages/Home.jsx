@@ -9,8 +9,10 @@ export const Home = () => {
     const { store, actions } = useContext(Context);
     const navigate = useNavigate();
 
-    const handleMovies = () => {
-        navigate("/movies-details")
+    const handleMovies = (id) => {
+        navigate(`/movies-details/${id}`)
+        // actions.getMovieDetails(id)
+        // console.log("este es el id: ",id)
     }
 
     return (
@@ -22,12 +24,13 @@ export const Home = () => {
                 <hr className="border border-primary border-3 opacity-75" />
                 <div className="row row-cols-1 row-cols-md-4 g-4"  >
                     {store.movieList.map((movie) => (
-                        <div className="col" key={movie.id} onClick={handleMovies}>
+                        <div className="col" key={movie.id}>
                             <div className="card movie-card h-100">
                                 <img
                                     src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
                                     alt={movie.title}
                                     className="card-img-top movie-poster"
+                                    onClick={() => handleMovies(movie.id)}
                                 />
                                 <div className="card-body">
                                     <h5 className="card-title movie-title">{movie.title}</h5>

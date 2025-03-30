@@ -9,9 +9,22 @@ const getState = ({ getStore, getActions, setStore }) => {
 			isAdmin: false,
 			user: {},
 			movieList: [],
+			movieDetails: {},
 			alert: {text: '', visible: false, background: 'primary'},
 		},
 		actions: {
+			getMovieDetails: async (movieId) => {
+				const response = await fetch(`${process.env.BACKEND_URL}/api/movies/${movieId}`,
+					{
+						method: 'GET'
+					})
+				if (!response.ok) {
+					console.log("Error getMovieDetails: ", response.status, response.statusText)
+					return;
+				}
+				const data = await response.json()
+				setStore({movieDetails: {...data.result, id: data.result.id}})
+			},
 			register: async (newUser) => {
 				const response = await fetch(`${process.env.BACKEND_URL}/api/register`, 
 					{

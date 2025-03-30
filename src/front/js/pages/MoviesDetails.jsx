@@ -1,49 +1,64 @@
-import React from "react";
+import React, { useContext, useEffect } from "react";
 import "../../styles/movies-details.css";
+import { Context } from "../store/appContext.js";
+import { useParams } from "react-router-dom";
 
 export const MoviesDetails = () => {
 
+    const { store, actions } = useContext(Context);
+    const { movieId } = useParams();
 
+    useEffect(() => {
+        actions.getMovieDetails(movieId)
+    }, [movieId]);
+
+    const movie = store.movieDetails;
+    if (!movie) {
+        return <p>Cargando detalles de la película...</p>;
+    };
 
     return (
         <div>
             <div className="billboard mb-3">
-                <img src="https://media.themoviedb.org/t/p/w1066_and_h600_bestv2/oHPoF0Gzu8xwK4CtdXDaWdcuZxZ.jpg"></img>
+                <img src={`https://image.tmdb.org/t/p/original${movie.backdrop_path}`} alt={movie.title}></img>
             </div>
             <div style={{marginLeft: "1%"}}>
-                <div className="row justify-content-start mb-3" style={{marginLeft: "10%"}}>
+                <div className="justify-content-start mb-3" style={{marginLeft: "10%"}}>
                     <div className="col-md-7"> 
                         <div className="shadow-sm d-flex flex-row align-items-center" style={{fontSize: "large"}}>
                             <img 
                                 className="img-fluid" 
-                                src="https://res.cloudinary.com/odeoncloud/w_570%2Ch_815%2Cf_auto%2Cq_85/c_scale%2Cg_south_east%2Cl_wcloud:odeon:tags:anticipada.png%2Cw_192/v1742829190/wcloud/odeon/ps_11326.jpg"
-                                style={{ width: "200px", height: "auto", borderRadius: "10px" }}
-                                alt="Movie">
+                                src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+                                alt={movie.title}
+                                style={{ width: "200px", height: "auto", borderRadius: "10px" }}>
                             </img>
                             <div className="p-3">
-                                <h5 className="mt-3" style={{marginLeft: "20%"}}>Title</h5>
+                                <h5 className="mt-3" style={{marginLeft: "20%"}}>{movie.title}</h5>
                                 <p className="mt-3" style={{marginLeft: "20%"}}>
                                    <img 
-                                        src="https://cdn-icons-png.freepik.com/256/5110/5110881.png?ga=GA1.1.2027331089.1732724367&semt=ais_hybrid" 
-                                        style={{width: "7%", marginRight: "15px"}} 
+                                        src="https://aficine.com/wp-content/themes/aficine-v2/assets/img/todoslospublicos.png" 
+                                        style={{ width: "30px", height: "30px", marginRight: "15px" }} 
+                                        alt="adult"
                                     />
-                                    Adult
+                                    {movie.adult ? "Solo para adultos" : "Apto para todo el público"}
                                 </p>
-                                <div className="d-flex flex-row">
-                                    <p className="me-5 d-flex flex-row" style={{marginLeft: "20%"}}>
+                                <div className="d-flex flex-row justify-content-start" style={{ marginLeft: "20%" }}>
+                                    <div className="d-flex align-items-center me-5">
                                         <img 
-                                            src="https://cdn-icons-png.freepik.com/256/4304/4304194.png?ga=GA1.1.2027331089.1732724367&semt=ais_hybrid" 
-                                            style={{width: "20%", marginRight: "15px"}} 
+                                            src="https://cdn-icons-png.freepik.com/256/4304/4304194.png" 
+                                            style={{ width: "30px", height: "30px", marginRight: "10px", verticalAlign: "middle" }} 
+                                            alt="runtime"
                                         />
-                                        Runtime
-                                    </p>
-                                    <p style={{marginLeft: "20%"}} className="me-5 d-flex flex-row">
+                                        <span>{movie.runtime} min</span>
+                                    </div>
+                                    <div className="d-flex align-items-center ms-5">
                                         <img 
-                                            src="https://cdn-icons-png.freepik.com/256/14640/14640575.png?ga=GA1.1.2027331089.1732724367&semt=ais_hybrid" 
-                                            style={{width: "30%", marginRight: "15px"}} 
+                                            src="https://cdn-icons-png.freepik.com/256/14640/14640575.png" 
+                                            style={{ width: "30px", height: "30px", marginRight: "10px" }} 
+                                            alt="genre"
                                         />
-                                        Gender
-                                    </p>
+                                        <span>{movie.genre}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -54,24 +69,24 @@ export const MoviesDetails = () => {
                 <div className="col-12" style={{marginRight: "60%"}}>
                     <div className="d-flex flex-row bg-dark mb-3 w-100" style={{borderRadius: "5px", fontSize: "large"}}>
                         <div className="mx-3" style={{borderRadius: "5px", color: "white", padding: "5px"}}>Sala 1: </div>
-                        <div className="mx-5" style={{borderRadius: "5px", color: "white", border: "2px solid white", padding: "5px", borderRadius: "20px", paddingLeft: "20px", paddingRight: "20px"}}>17:10</div>
-                        <div className="mx-5" style={{borderRadius: "5px", color: "white", border: "2px solid white", padding: "5px", borderRadius: "20px", paddingLeft: "20px", paddingRight: "20px"}}>19:10</div>
-                        <div className="mx-5" style={{borderRadius: "5px", color: "white", border: "2px solid white", padding: "5px", borderRadius: "20px", paddingLeft: "20px", paddingRight: "20px"}}>21:30</div>
+                        <div className="mx-5 btn btn-outline-secondary" style={{borderRadius: "5px", color: "white", border: "2px solid white", padding: "5px", borderRadius: "20px", paddingLeft: "20px", paddingRight: "20px"}}>17:10</div>
+                        <div className="mx-5 btn btn-outline-secondary" style={{borderRadius: "5px", color: "white", border: "2px solid white", padding: "5px", borderRadius: "20px", paddingLeft: "20px", paddingRight: "20px"}}>19:10</div>
+                        <div className="mx-5 btn btn-outline-secondary" style={{borderRadius: "5px", color: "white", border: "2px solid white", padding: "5px", borderRadius: "20px", paddingLeft: "20px", paddingRight: "20px"}}>21:30</div>
                     </div>                      
                     <div className="d-flex flex-row bg-dark mb-3 w-100" style={{borderRadius: "5px", fontSize: "large"}}>
                         <div className="mx-3" style={{borderRadius: "5px", color: "white", padding: "5px"}}>Sala 2: </div>
-                        <div className="mx-5" style={{borderRadius: "5px", color: "white", border: "2px solid white", padding: "5px", borderRadius: "20px", paddingLeft: "20px", paddingRight: "20px"}}>17:00</div>
-                        <div className="mx-5" style={{borderRadius: "5px", color: "white", border: "2px solid white", padding: "5px", borderRadius: "20px", paddingLeft: "20px", paddingRight: "20px"}}>19:20</div>
+                        <div className="mx-5 btn btn-outline-secondary" style={{borderRadius: "5px", color: "white", border: "2px solid white", padding: "5px", borderRadius: "20px", paddingLeft: "20px", paddingRight: "20px"}}>17:00</div>
+                        <div className="mx-5 btn btn-outline-secondary" style={{borderRadius: "5px", color: "white", border: "2px solid white", padding: "5px", borderRadius: "20px", paddingLeft: "20px", paddingRight: "20px"}}>19:20</div>
                     </div>                      
                 </div>
             </div>
-            <div className="detalles">                           
+            <div className="detalles row justify-content-start mb-3" style={{marginLeft: "15%", marginRight: "15%"}}>                           
                 <h1>OVERVIEW</h1>
-                <p>Resumen</p>
+                <p>{movie.overview}</p>
                 <h5>DIRECTOR</h5>
-                <p>Nombre del director</p>
+                <p>{movie.director || "No disponible"}</p>
                 <h5>ACTORS</h5>
-                <p>Nombres de los actores</p>
+                <p>{movie.actors || "No disponible"}</p>
             </div>
             <div className="detalles">                           
                 <h1>TRAILER</h1>
