@@ -181,6 +181,7 @@ def book_ticket():
         return jsonify({'message': "User not found"}), 400
     
     data = request.json
+    print('book-ticket data:', data)
     showtime_id = data.get('showtime_id')
     seats_booked = data.get('seats_booked', [])
 
@@ -203,7 +204,8 @@ def book_ticket():
         
         showtime.reserve_seat(row, col)
         showtime.available -= 1
-         # Crear la reserva
+        
+        # Crear la reserva
         new_booking = Bookings(
             user_id=user.id,
             showtime_id=showtime_id,
@@ -211,12 +213,13 @@ def book_ticket():
             col=col,
             booking_price=5,
         )
+        
         db.session.add(new_booking)
     
     db.session.commit()
-    
     response_body['message'] = 'Booking successful'
     response_body['booking'] = new_booking.user_bookings()
+    
     return jsonify(response_body), 200
 
 
