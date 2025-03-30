@@ -1,0 +1,15 @@
+.billboard{
+    position: relative;
+    max-height: 500px; 
+}
+img{
+    width: 100%;
+    max-height: 500px;
+}
+.detalles{
+    display: flex;
+    flex-direction: column;
+    justify-content: center; 
+    align-items: center;
+    text-align: center
+}
