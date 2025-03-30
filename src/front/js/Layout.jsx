@@ -13,6 +13,9 @@ import { Error404 } from "./pages/Error404.jsx";
 import { Login } from "./pages/Login.jsx";
 import { Register } from "./pages/Register.jsx";
 import { BookingSesion } from "./pages/BookingSesion.jsx";
+import { Alert } from "./component/Alert.jsx";
+import { MoviesDetails } from "./pages/MoviesDetails.jsx";
+
 
 
 //Create your first component
@@ -33,6 +36,7 @@ const Layout = () => {
                         <Route element={<Login />} path="/login" />
                         <Route element={<Register />} path="/register" />
                         <Route element={<BookingSesion />} path="/booking-sesion" />
+                        <Route element={<MoviesDetails />} path="/movies-details/:movieId" />
                         <Route element={<Error404/>} path='*'/>
                     </Routes>
                     <Footer />
