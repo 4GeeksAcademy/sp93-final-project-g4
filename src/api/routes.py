@@ -54,14 +54,14 @@ def login():
 def register():
     response_body = {}
     data = request.json
-    print('soy el data del register: ', data)
+    
     row = Users(username=data.get("username", ""), email=data["email"], password=data["password"], is_admin=data.get("is_admin", False))
     db.session.add(row)
     db.session.commit()
     user = row.serialize()
     claims ={'id': user['id'],
              'is_admin': user['is_admin']}
-    print('soy el claims del register: ', claims)
+    
     access_token = create_access_token(identity=user['email'], additional_claims=claims)
     response_body['message'] = 'New User Created'
     response_body['access_token'] = access_token
@@ -181,54 +181,53 @@ def book_ticket():
         return jsonify({'message': "User not found"}), 400
 
     data = request.json
+    print('soy el data de book_ticket:', data)
     showtime_id = data.get('showtime_id')
-    row = data.get('row')
-    col = data.get('col')
+    """ row = data.get('row')
+    col = data.get('col') """
+    seats_booked = data.get('seats_booked', [])
 
-    if showtime_id is None or row is None or col is None:
+    """ if showtime_id is None or row is None or col is None or not seats_booked:
+        return jsonify({'message': 'Missing required fields'}), 400 """
+    if showtime_id is None or not seats_booked:
         return jsonify({'message': 'Missing required fields'}), 400
 
     showtime = db.session.execute(db.select(ShowTimes).where(ShowTimes.id == showtime_id)).scalar()
+
     if not showtime:
         return jsonify({'message': 'Showtime not found'}), 404
-
-    if {"row": row, "col": col} in showtime.get_reserved_seats():
-        return jsonify({'message': 'The seat is already reserved'}), 400
-
+    
     cinema_room = showtime.cinema_room_to
-    if row < 1 or row > cinema_room.cinema_row or col < 1 or col > cinema_room.cinema_col:
-        return jsonify({'message': 'Invalid seat selection'}), 400
+    
+    for seat in seats_booked:
+        row = seat.get('row')
+        col = seat.get('col')
+        if {"row": row, "col": col} in showtime.get_reserved_seats():
+            return jsonify({'message': 'The seat is already reserved'}), 400
+        if row < 1 or row > cinema_room.cinema_row or col < 1 or col > cinema_room.cinema_col:
+            return jsonify({'message': 'Invalid seat selection'}), 400
+        
+        showtime.reserve_seat(row, col)
+        showtime.available -= 1
 
-    # Crear la reserva
-    new_booking = Bookings(
-        user_id=user.id,
-        showtime_id=showtime_id,
-        row=row,
-        col=col,
-        booking_price=5,
-    )
-
-    db.session.add(new_booking)
-    showtime.reserve_seat(row, col)
-    showtime.available -= 1
+         # Crear la reserva
+        new_booking = Bookings(
+            user_id=user.id,
+            showtime_id=showtime_id,
+            row=row,
+            col=col,
+            booking_price=5,
+        )
+        db.session.add(new_booking)
+    
     db.session.commit()
+    
 
     response_body['message'] = 'Booking successful'
     response_body['booking'] = new_booking.user_bookings()
-
-    """movie_booked = data.get('user_bookings', [])
-
-     for seats_booked in movie_booked:
-        seats_booked = db.session.execute(db.select(Bookings).where(row==row, col==col)).scalar()
-        if not seats_booked:
-            db.session.add(new_booking)
-            showtime.reserve_seat(row, col)
-            showtime.available -= 1
-            db.session.commit()
-        if {"row": row, "col": col} in showtime.get_reserved_seats():
-            return jsonify({'message': 'The seat is already reserved'}), 400 """
         
     return jsonify(response_body), 200
+
 
 @api.route('/showtime/<int:showtime_id>/seats', methods=['GET'])
 def get_showtime_seats(showtime_id):
