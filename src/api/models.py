@@ -26,6 +26,7 @@ class Users(db.Model):
                 'wallet': self.wallet,
                 'is_admin': self.is_admin}
 
+
 class Bookings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     booking_date = db.Column(db.DateTime, default=datetime.utcnow())
@@ -53,6 +54,7 @@ class Bookings(db.Model):
             "cinema_room_name": self.showtime_to.cinema_room_to.name,
             "sales_id": [sale.id for sale in self.sales]}
 
+
 class CinemaRooms(db.Model):
     __tablename__ = "cinema_rooms"
     id = db.Column(db.Integer, primary_key=True)
@@ -73,7 +75,7 @@ class CinemaRooms(db.Model):
 
 
 class ShowTimes(db.Model):
-    __tablename__ = "show_times"
+    tablename = "show_times"
     id = db.Column(db.Integer, primary_key=True)
     date_time = db.Column(db.DateTime)
     movie_id = db.Column(db.Integer, db.ForeignKey('movies.id'), nullable=False)
@@ -81,30 +83,31 @@ class ShowTimes(db.Model):
     cinema_room_id = db.Column(db.Integer, db.ForeignKey('cinema_rooms.id'), nullable=False)
     cinema_room_to = db.relationship('CinemaRooms', foreign_keys=[cinema_room_id], backref=db.backref('showtime_room'), lazy='select')
     available = db.Column(db.Integer, default=25)
-    reserved_seats = db.Column(db.Text(), default="[]")
 
-    def __repr__(self):
-        return f'<Show Time: date time: {self.date_time} - movie : {self.movie_id}'
-    
+    reserved_seats = db.Column(db.Text, default="[]")
+
     def get_reserved_seats(self):
-        return json.loads(self.reserved_seats) # Aqui se devuelve el array que es un json y lo duevuelve en str (===> "json") y el load lo transdorma en dict
+        if not self.reserved_seats:
+            return []
+        return json.loads(self.reserved_seats)
 
     def reserve_seat(self, row, col):
-        reserve = self.get_reserved_seats()
-        reserve.append({
-            "row": row,
-            "col": col
-        })
-        self.reserved_seats = json.dump(reserve) # Aqui el dump devuelve el dict en forma de json
+        reserved = self.get_reserved_seats()
+        reserved.append({"row": row, "col": col})
+        self.reserved_seats = json.dumps(reserved)
+
+    def repr(self):
+        return f'<Show Time: date time: {self.date_time} - movie : {self.movie_id}'
 
     def serialize(self):
         return{ 'id': self.id,
-                'date_time': self.date_time,
+                'date_time': self.date_time.strftime("%d/%m/%Y %H:%M"),
                 'movie_id': self.movie_id,
                 'cinema_room_id': self.cinema_room_id,
-                'reserved_seats': self.reserved_seats,
-                'available': self.available}
-    
+                'available_seats': self.available,
+                "reserved_seats": self.get_reserved_seats(),
+                }
+
 
 class Movies(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -133,6 +136,7 @@ class Movies(db.Model):
                 'poster_path': self.poster_path,
                 'release_date': self.release_date}
 
+
 class Sales(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sale_date = db.Column(db.DateTime, default=datetime.utcnow())
@@ -153,6 +157,7 @@ class Sales(db.Model):
                 'discount': self.discount,
                 'total': self.total,}
 
+
 class SalesLines(db.Model):
     __tablename__ = "sales_lines"
     id = db.Column(db.Integer, primary_key=True)
@@ -169,6 +174,7 @@ class SalesLines(db.Model):
         return{ 'quantity': self.quantity,
                 'unit_price': self.unit_price,
                 'product': self.product_to.name}
+    
     
 class Products(db.Model):
     id = db.Column(db.Integer, primary_key=True)
