@@ -83,12 +83,12 @@ export const MoviesDetails = () => {
             <div className="detalles row justify-content-start mb-3" style={{marginLeft: "15%", marginRight: "15%"}}>                           
                 <h1>OVERVIEW</h1>
                 <p>{movie.overview}</p>
-                <h5>DIRECTOR</h5>
+                {/* <h5>DIRECTOR</h5>
                 <p>{movie.director || "No disponible"}</p>
                 <h5>ACTORS</h5>
-                <p>{movie.actors || "No disponible"}</p>
+                <p>{movie.actors || "No disponible"}</p> */}
             </div>
-            <div className="detalles">                           
+            {/* <div className="detalles">                           
                 <h1>TRAILER</h1>
                 <iframe 
                     width="1047" 
@@ -99,7 +99,7 @@ export const MoviesDetails = () => {
                     referrerpolicy="strict-origin-when-cross-origin" 
                     allowfullscreen>
                 </iframe>
-            </div>
+            </div> */}
         </div>
     )
 }
