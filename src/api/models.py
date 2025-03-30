@@ -120,6 +120,7 @@ class Movies(db.Model):
     popularity = db.Column(db.Float)
     poster_path = db.Column(db.String)
     release_date = db.Column(db.String)
+    genre = db.Column((db.String), nullable=True)
 
     def __repr__(self):
         return f'<Movies: title{self.title}'
@@ -134,7 +135,8 @@ class Movies(db.Model):
                 'backdrop_path': self.backdrop_path,
                 'popularity': self.popularity,
                 'poster_path': self.poster_path,
-                'release_date': self.release_date}
+                'release_date': self.release_date,
+                'genre': self.genre}
 
 
 class Sales(db.Model):

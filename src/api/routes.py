@@ -288,27 +288,33 @@ def import_movies():
     movies = response.json().get("results", [])
 
     for movie in movies:
+        url_details = f'{os.getenv("URL_TMDB")}/{movie["id"]}'
+        response = requests.get(url_details, headers=headers)
+        movie_details = response.json()
         tmdb_id = movie["id"]
         title = movie["title"]
-        runtime = movie.get("runtime", 0) # La duracion smp va a ser 0 porque en la API al traer la lista de peliculas no tiene el atributo "runtime"
+        runtime = movie_details.get("runtime", 0) # La duracion smp va a ser 0 porque en la API al traer la lista de peliculas no tiene el atributo "runtime"
         overview = movie.get("overview", "")
         adult = movie["adult"]
         backdrop_path = movie["backdrop_path"]
         popularity = movie["popularity"]
         poster_path = movie["poster_path"]
         release_date = movie.get("release_date", None)
+        genre_list = [g["name"] for g in movie_details.get("genres", [])]
+        genre = ",".join(genre_list)
         movie_exist = db.session.execute(db.select(Movies).where(Movies.tmdb_id == tmdb_id)).scalar()
         if not movie_exist:
             new_movie = Movies(
                 tmdb_id=tmdb_id, 
                 title=title,
-                runtime=runtime, 
+                runtime=runtime,
                 overview=overview,
                 adult=adult,
                 backdrop_path=backdrop_path,
                 popularity=popularity,
                 poster_path=poster_path, 
-                release_date=release_date)
+                release_date=release_date,
+                genre=genre)
             db.session.add(new_movie)
 
     db.session.commit()
