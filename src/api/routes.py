@@ -183,12 +183,9 @@ def book_ticket():
     data = request.json
     print('soy el data de book_ticket:', data)
     showtime_id = data.get('showtime_id')
-    """ row = data.get('row')
-    col = data.get('col') """
+    
     seats_booked = data.get('seats_booked', [])
 
-    """ if showtime_id is None or row is None or col is None or not seats_booked:
-        return jsonify({'message': 'Missing required fields'}), 400 """
     if showtime_id is None or not seats_booked:
         return jsonify({'message': 'Missing required fields'}), 400
 
@@ -222,7 +219,6 @@ def book_ticket():
     
     db.session.commit()
     
-
     response_body['message'] = 'Booking successful'
     response_body['booking'] = new_booking.user_bookings()
         
