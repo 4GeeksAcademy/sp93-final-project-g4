@@ -103,8 +103,10 @@ class ShowTimes(db.Model):
         return{ 'id': self.id,
                 'date_time': self.date_time.strftime("%d/%m/%Y %H:%M"),
                 'movie_id': self.movie_id,
-                'cinema_room_id': self.cinema_room_id,
+                'cinema_room': self.cinema_room_to.name,
                 'available_seats': self.available,
+                'col_max': self.cinema_room_to.cinema_col,
+                'row_max': self.cinema_room_to.cinema_row,
                 "reserved_seats": self.get_reserved_seats(),
                 }
 
