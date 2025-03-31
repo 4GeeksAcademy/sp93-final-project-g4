@@ -1,12 +1,16 @@
-import React, { useState } from "react";
-import Table from 'react-bootstrap/Table';
+import React, { useContext, useState } from "react";
 import butacaSimple from "../../img/butaca-sin-uso.png";
 import butacaSeleccionada from "../../img/butaca-uso.png";
 import butacaReservada from "../../img/butaca-reservada.png";
 import "../../styles/booking.css";
+import { Context } from "../store/appContext";
 
 
 export const BookingSesion = () => {
+
+  const { store } = useContext(Context);
+
+  print(store.showtimeId)
 
   const seatsInitial = [
     [0, 0, 0, 0, 0],  

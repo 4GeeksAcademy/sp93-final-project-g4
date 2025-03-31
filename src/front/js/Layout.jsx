@@ -13,7 +13,6 @@ import { Error404 } from "./pages/Error404.jsx";
 import { Login } from "./pages/Login.jsx";
 import { Register } from "./pages/Register.jsx";
 import { BookingSesion } from "./pages/BookingSesion.jsx";
-import { Alert } from "./component/Alert.jsx";
 import { MoviesDetails } from "./pages/MoviesDetails.jsx";
 
 
@@ -35,7 +34,7 @@ const Layout = () => {
                         <Route element={<Home />} path="/" />
                         <Route element={<Login />} path="/login" />
                         <Route element={<Register />} path="/register" />
-                        <Route element={<BookingSesion />} path="/booking-sesion" />
+                        <Route element={<BookingSesion />} path="/booking-sesion/:id" />
                         <Route element={<MoviesDetails />} path="/movies-details/:movieId" />
                         <Route element={<Error404/>} path='*'/>
                     </Routes>

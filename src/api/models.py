@@ -105,7 +105,7 @@ class ShowTimes(db.Model):
                 'movie_id': self.movie_id,
                 'cinema_room_id': self.cinema_room_id,
                 'available_seats': self.available,
-                "reserved_seats": self.get_reserved_seats(),
+                "reserved_seats": self.get_reserved_seats()
                 }
 
 
