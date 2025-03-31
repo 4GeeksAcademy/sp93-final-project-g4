@@ -9,9 +9,9 @@ export const Login = () => {
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-
+    const [viewPassword, setViewPassword] = useState(false)
     const navigate = useNavigate()
-
+    const handleViewPassword = () => { setViewPassword(!viewPassword) }
     const handleLogin = (event) => {
         event.preventDefault();
         const userLogin = {
@@ -26,28 +26,25 @@ export const Login = () => {
         <div id="login" style={{ position: 'relative', height: '100vh' }}>
             <div className="d-flex align-items-center justify-content-center">
                 <form className=" shadow-lg rounded-4 p-4 w-25" onSubmit={handleLogin}>
-                    <h3 className="text-center mb-4">Wellcome!</h3>
+                    <h2 className="text-center mb-4">Wellcome</h2>
                     <div className="mb-3">
-                        <label htmlFor="email" className="form-label">Email address</label>
-                        <input
-                            type="email"
-                            id="email"
-                            className="form-control"
-                            placeholder="name@example.com"
-                            value={email} onChange={(e) => setEmail(e.target.value)}
-                        />
+                        <label htmlFor="email" className="form-label">Email</label>
+                        <input onChange={(e) => setEmail(e.target.value)} value={email} type="email" className="form-control" id="email" required />
                     </div>
                     <div className="mb-3">
                         <label htmlFor="password" className="form-label">Password</label>
-                        <input
-                            type="password"
-                            id="password"
-                            className="form-control"
-                            placeholder="••••••••"
-                            value={password} onChange={(e) => setPassword(e.target.value)}
-                        />
+                        <div class="input-group">
+                            
+                            <input value={password} onChange={(e) => setPassword(e.target.value)} type={viewPassword ? "text" : "password"} className="form-control " id="password" required />
+                            <span className="input-group-text text-bg-light" onClick={handleViewPassword}>
+                                {viewPassword ?
+                                    <i className="fa fa-eye-slash"></i>
+                                    :
+                                    <i className="fa fa-eye"></i>
+                                }
+                            </span>
+                        </div>
                     </div>
-
                     <button type="submit" className="btn btn-primary w-100">
                         Login
                     </button>

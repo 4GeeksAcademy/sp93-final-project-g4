@@ -251,14 +251,12 @@ def user_profile():
     
     if request.method == 'PUT':
         data = request.json
-        if 'username' in data:
-            user.username = data['username']
-        if 'email' in data:
-            user.email = data['email']
+        user.username = data.get('username', user.username)
+        user.email = data.get('email', user.email)
         db.session.commit()
+        
         response_body['message'] = 'Your Profile is Updated Successfully!'
-        new_token = create_access_token(identity=user.email)
-        response_body['new_token'] = new_token
+        response_body['results'] = user.serialize()
         return response_body, 200
     
 
