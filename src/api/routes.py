@@ -271,6 +271,18 @@ def user_profile():
         return response_body, 200
     
 
+@api.route('/showtime/<int:movie_id>/details', methods=['GET'])
+def showtime_details(movie_id):
+    response_body = {}
+    showtimes = db.session.execute(db.select(ShowTimes).where(ShowTimes.movie_id == movie_id)).scalars()
+
+    if not showtimes:
+        return jsonify({'message': 'Showtime not found'}), 404
+
+    response_body['showtime'] = [showtime.serialize() for showtime in showtimes]
+    return jsonify(response_body), 200
+    
+
 def import_movies():
     url = f'{os.getenv("URL_TMDB")}/now_playing'
     headers = {
