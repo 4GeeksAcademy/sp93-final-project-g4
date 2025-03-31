@@ -43,8 +43,8 @@ export const Navbar = () => {
 					<span className="navbar-toggler-icon"></span>
 				</button>
 				<div className="collapse navbar-collapse" id="navbarColor02">
-					<ul className="navbar-nav me-auto">
-						{/* <li className="nav-item">
+					{/*<ul className="navbar-nav me-auto">
+						 <li className="nav-item">
 								<Link className="nav-link active" to="#">Home
 									<span className="visually-hidden">(current)</span>
 								</Link>
@@ -67,8 +67,8 @@ export const Navbar = () => {
 									<div className="dropdown-divider"></div>
 									<Link className="dropdown-item" to="#">Separated link</Link>
 								</div>
-							</li>*/}
-					</ul>
+							</li>
+					</ul>*/}
 					<div>
 						{store.isLogged ? (
 							<Dropdown >

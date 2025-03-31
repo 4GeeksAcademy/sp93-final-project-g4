@@ -54,14 +54,14 @@ def login():
 def register():
     response_body = {}
     data = request.json
-    print('soy el data del register: ', data)
+    
     row = Users(username=data.get("username", ""), email=data["email"], password=data["password"], is_admin=data.get("is_admin", False))
     db.session.add(row)
     db.session.commit()
     user = row.serialize()
     claims ={'id': user['id'],
              'is_admin': user['is_admin']}
-    print('soy el claims del register: ', claims)
+    
     access_token = create_access_token(identity=user['email'], additional_claims=claims)
     response_body['message'] = 'New User Created'
     response_body['access_token'] = access_token
@@ -170,7 +170,7 @@ def store_cinema():
         }
         return response_body, 201
 
-
+    
 @api.route('/book-ticket', methods=['POST'])
 @jwt_required()
 def book_ticket():
@@ -181,49 +181,58 @@ def book_ticket():
         return jsonify({'message': "User not found"}), 400
     
     data = request.json
+    print('book-ticket data:', data)
     showtime_id = data.get('showtime_id')
-    row = data.get('row')
-    col = data.get('col')
+    seats_booked = data.get('seats_booked', [])
 
-    if showtime_id is None or row is None or col is None:
+    if showtime_id is None or not seats_booked:
         return jsonify({'message': 'Missing required fields'}), 400
-    
+
     showtime = db.session.execute(db.select(ShowTimes).where(ShowTimes.id == showtime_id)).scalar()
     if not showtime:
         return jsonify({'message': 'Showtime not found'}), 404
     
-    if showtime.available <= 0:
-        return jsonify({'message': 'No ticket available'}), 400
-    
     cinema_room = showtime.cinema_room_to
-    if row < 1 or row > cinema_room.cinema_row or col < 1 or col > cinema_room.cinema_col:
-        return jsonify({'message': 'Invalid seat selection'}), 400
-    existing_booking = db.session.execute(
-        db.select(Bookings).where(
-            Bookings.showtime_id == showtime_id,
-            Bookings.row == row,
-            Bookings.col == col
-        )
-    ).scalar()
     
-    if existing_booking:
-        return jsonify({'message': 'The seat is already reserved'}), 400
-    new_booking = Bookings(
-        user_id = user.id,
-        showtime_id = showtime_id,
-        row = row,
-        col = col,
-        booking_price = 5,
+    for seat in seats_booked:
+        row = seat.get('row')
+        col = seat.get('col')
+        if {"row": row, "col": col} in showtime.get_reserved_seats():
+            return jsonify({'message': 'The seat is already reserved'}), 400
+        if row < 1 or row > cinema_room.cinema_row or col < 1 or col > cinema_room.cinema_col:
+            return jsonify({'message': 'Invalid seat selection'}), 400
+        
+        showtime.reserve_seat(row, col)
+        showtime.available -= 1
+        
+        # Crear la reserva
+        new_booking = Bookings(
+            user_id=user.id,
+            showtime_id=showtime_id,
+            row=row,
+            col=col,
+            booking_price=5,
         )
-
-    db.session.add(new_booking)
-    showtime.available -= 1
+        
+        db.session.add(new_booking)
+    
     db.session.commit()
     response_body['message'] = 'Booking successful'
     response_body['booking'] = new_booking.user_bookings()
+    
+    return jsonify(response_body), 200
 
-    return jsonify(response_body), 200 
 
+@api.route('/showtime/<int:showtime_id>/seats', methods=['GET'])
+def get_showtime_seats(showtime_id):
+    response_body = {}
+    showtime = db.session.execute(db.select(ShowTimes).where(ShowTimes.id == showtime_id)).scalar()
+    if not showtime:
+        return jsonify({'message': 'Showtime not found'}), 404
+
+    response_body['details'] = showtime.serialize()
+
+    return response_body, 200
 
 @api.route('/products', methods=['GET', 'POST'])
 # @jwt_required()
@@ -260,6 +269,18 @@ def user_profile():
         return response_body, 200
     
 
+@api.route('/showtime/<int:movie_id>/details', methods=['GET'])
+def showtime_details(movie_id):
+    response_body = {}
+    showtimes = db.session.execute(db.select(ShowTimes).where(ShowTimes.movie_id == movie_id)).scalars()
+
+    if not showtimes:
+        return jsonify({'message': 'Showtime not found'}), 404
+
+    response_body['showtime'] = [showtime.serialize() for showtime in showtimes]
+    return jsonify(response_body), 200
+    
+
 def import_movies():
     url = f'{os.getenv("URL_TMDB")}/now_playing'
     headers = {
@@ -270,27 +291,33 @@ def import_movies():
     movies = response.json().get("results", [])
 
     for movie in movies:
+        url_details = f'{os.getenv("URL_TMDB")}/{movie["id"]}'
+        response = requests.get(url_details, headers=headers)
+        movie_details = response.json()
         tmdb_id = movie["id"]
         title = movie["title"]
-        runtime = movie.get("runtime", 0) # La duracion smp va a ser 0 porque en la API al traer la lista de peliculas no tiene el atributo "runtime"
+        runtime = movie_details.get("runtime", 0) # La duracion smp va a ser 0 porque en la API al traer la lista de peliculas no tiene el atributo "runtime"
         overview = movie.get("overview", "")
         adult = movie["adult"]
         backdrop_path = movie["backdrop_path"]
         popularity = movie["popularity"]
         poster_path = movie["poster_path"]
         release_date = movie.get("release_date", None)
+        genre_list = [g["name"] for g in movie_details.get("genres", [])]
+        genre = ",".join(genre_list)
         movie_exist = db.session.execute(db.select(Movies).where(Movies.tmdb_id == tmdb_id)).scalar()
         if not movie_exist:
             new_movie = Movies(
                 tmdb_id=tmdb_id, 
                 title=title,
-                runtime=runtime, 
+                runtime=runtime,
                 overview=overview,
                 adult=adult,
                 backdrop_path=backdrop_path,
                 popularity=popularity,
                 poster_path=poster_path, 
-                release_date=release_date)
+                release_date=release_date,
+                genre=genre)
             db.session.add(new_movie)
 
     db.session.commit()
