@@ -3,7 +3,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 """
 from flask import Flask, request, jsonify, url_for, Blueprint
 from api.utils import generate_sitemap, APIException
-from api.models import db, Users, Bookings, CinemaRooms, ShowTimes, Movies, Sales, SalesLines, Products
+from api.models import db, Users, Bookings, CinemaRooms, ShowTimes, Movies, Sales, SalesLines, Products, Payments
 from flask_cors import CORS
 import requests
 import os
@@ -12,6 +12,8 @@ from flask_jwt_extended import jwt_required
 from flask_jwt_extended import get_jwt_identity
 from flask_jwt_extended import get_jwt
 from datetime import datetime
+import square
+from square.client import Client
 
 
 api = Blueprint('api', __name__)
@@ -222,7 +224,6 @@ def book_ticket():
     
     return jsonify(response_body), 200
 
-
 @api.route('/showtime/<int:showtime_id>/seats', methods=['GET'])
 def get_showtime_seats(showtime_id):
     response_body = {}
@@ -279,7 +280,295 @@ def showtime_details(movie_id):
 
     response_body['showtime'] = [showtime.serialize() for showtime in showtimes]
     return jsonify(response_body), 200
+
+
+square_client = Client(
+    access_token= os.getenv("SQUARE_ACCESS_TOKEN"),            # Token de acceso desde la configuración
+    environment= "sandbox"                                     # Cambiar a : "production" cuando estemos en un entorno real 
+)                                                              #             "sandox" es para probar
+
+
+@api.route('/create-order', methods=['POST'])                 # Vamos a crear una orden de compra
+@jwt_required()  
+def create_order():
+    response_body = {}  
+    current_user_email = get_jwt_identity()
+    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
     
+    if not user:
+        response_body['message'] = "User not found"
+        return jsonify(response_body), 400  
+
+    data = request.json  
+    selected_products = data.get('products', []) 
+
+    if not selected_products:
+        response_body['message'] = "No products selected"
+        return jsonify(response_body), 400  
+    
+    total = sum([db.session.execute(db.select(Products.base_price)
+                           .where(Products.id == product.get('id'))).scalar() * product.get('quantity') for product in selected_products
+    ])
+    
+    new_sale = Sales(user_id=user.id, total=total)          # Creamos la orden en nuestra BD
+    db.session.add(new_sale)
+    
+    for product in selected_products:
+        product_selected = db.session.execute(db.select(Products).where(Products.id == product.get('id'))).scalar()
+        if product_selected:
+            new_sale_line = SalesLines(              
+                product_id=product_selected.id,
+                quantity=product.get('quantity'),
+                unit_price=product_selected.base_price,
+                sale_id=new_sale.id
+            )
+            db.session.add(new_sale_line)
+
+    db.session.commit() 
+
+    response_body["message"] = "Order created successfully!"
+    response_body["order_id"] = new_sale.id
+    response_body["total"] = total
+    return jsonify(response_body), 201
+
+
+@api.route('/process-payment', methods=['POST'])              # Vamos a procesar pagos con Square
+@jwt_required()  
+def process_payment():
+    response_body = {}  
+    current_user_email = get_jwt_identity()
+    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
+
+    if not user:
+        response_body['message'] = "User not found"
+        return jsonify(response_body), 400  
+
+    data = request.json  
+    source_id = data.get("source_id")    # Token de la tarjeta generado en el frontend por Square
+    order_id = data.get("order_id")      # ID de la orden de compra creada previamente
+    amount = data.get("amount")          # Monto del pago en centavos (ejemplo: 2500 = $25.00)
+    currency = "USD"  
+
+    if not source_id or not order_id or not amount:
+        response_body['message'] = "Missing payment details"
+        return jsonify(response_body), 400  
+
+    result = square_client.payments.create_payment({      # Llamamos a Square
+        "idempotency_key": str(order_id),                 # Generamos una clave única para evitar pagos duplicados
+        "source_id": source_id, 
+        "amount_money": {
+            "amount": amount,  
+            "currency": currency  
+        }
+    })
+
+    if result.is_success():
+        payment_id = result.body["payment"]["id"]   # ID único del pago en Square
+        new_payment = Payments(                     # Guardamos el pago en la BD
+            payment_id=payment_id,
+            amount=amount / 100,                    # Convertimos centavos a dólares
+            currency=currency,
+            status="COMPLETED",
+            user_id=user.id                         # Asociamos el pago con el usuario autenticado
+        )
+        db.session.add(new_payment)
+        db.session.commit()
+
+        response_body['message'] = "Payment processed successfully!"
+        response_body['payment_id'] = payment_id
+
+        return jsonify(response_body), 200
+    
+    response_body['message'] = "Payment failed"
+    response_body['errors'] = result.errors
+
+    return jsonify(response_body), 400
+
+
+@api.route('/create-invoice', methods=['POST'])               # Vamos a generar facturas
+@jwt_required()
+def create_invoice():
+    response_body = {}
+    current_user_email = get_jwt_identity()
+    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
+    
+    if not user:
+        response_body['message'] = "User not found"
+        return jsonify(response_body), 400  
+
+    data = request.json  
+    order_id = data.get('order_id')
+    order = db.session.execute(db.select(Sales).where(Sales.id == order_id, Sales.user_id == user.id)).scalar()
+
+    if not order:
+        response_body['message'] = "Order not found"
+        return jsonify(response_body), 400
+
+    
+    invoice_body = {                                                    # Construimos la factura en Square
+        "idempotency_key": str(order_id),                               # idempotency_key => Evita duplicaciones
+        "order_id": order_id,
+        "location_id": os.getenv("SQUARE_LOCATION_ID"),
+        "primary_recipient": {
+            "customer_id": user.email  
+        }
+    }
+
+    result = square_client.invoices.create_invoice(invoice_body)         # Llamamos a Square
+    if result.is_success():                                              # Si la factura se genera correctamente
+        response_body['message'] = "Invoice created successfully!"
+        response_body['invoice_id'] = result.body["invoice"]["id"]
+        return jsonify(response_body), 201
+                                                                  
+    response_body['message'] = "Invoice creation failed"                  # Si hay un error en la generación de la factura
+    response_body['errors'] = result.errors
+    return jsonify(response_body), 400
+
+
+@api.route('/validate-payment', methods=['POST'])             # Vamos a validar el estado de un pago
+@jwt_required()  
+def validate_payment():
+    response_body = {}  
+    current_user_email = get_jwt_identity()
+    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
+    if not user:
+        response_body['message'] = "User not found"
+        return jsonify(response_body), 400  
+
+    data = request.json  
+    payment_id = data.get('payment_id')
+    
+    payment = db.session.execute(db.select(Payments)                   # Verificamos que el pago existe en nuestra BD
+                                 .where(Payments.payment_id == payment_id, Payments.user_id == user.id)).scalar()
+    if not payment:
+        response_body['message'] = "Payment not found in database"
+        return jsonify(response_body), 400  
+
+    result = square_client.payments.get_payment(payment_id)            # Consultar el estado del pago directamente en Square
+    if result.is_success():
+        square_status = result.body["payment"]["status"]               # Estado del pago en Square
+
+        response_body['message'] = "Payment validation successful!"    
+        response_body['database_status'] = payment.status              # Comparamos el estado en nuestra BD con el estado en Square
+        response_body['square_status'] = square_status
+        response_body['amount'] = payment.amount
+        response_body['currency'] = payment.currency
+        return jsonify(response_body), 200
+
+    response_body['message'] = "Payment validation failed"             # Si hay un error en la validación con Square
+    response_body['errors'] = result.errors
+    return jsonify(response_body), 400
+
+
+@api.route('/finalize-payment-process', methods=['PUT'])      # Vamos a finalizar un pago
+@jwt_required()  
+def finalize_payment_process():
+    response_body = {}  
+    current_user_email = get_jwt_identity()
+    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
+    if not user:
+        response_body['message'] = "User not found"
+        return jsonify(response_body), 400  
+
+    data = request.json  
+    payment_id = data.get('payment_id')
+    payment = db.session.execute(db.select(Payments)    # Verificamos que el pago existe en nuestra BD según el "payment_id" que obtuvimos
+                                 .where(Payments.payment_id == payment_id, Payments.user_id == user.id)).scalar()
+    if not payment:
+        response_body['message'] = "Payment not found"
+        return jsonify(response_body), 404  
+    
+    if payment.status not in ["COMPLETED"]:      # Validamos que el pago esté en un estado que permita su finalización (no hacemos Refunded=Devoluciones)
+                                             # en este caso solo utilizamos "COMPLETED", pero de igual manera se podria usar para ["COMPLETED", "REFUNDED"]
+        response_body['message'] = "Only completed payments can be finalized"
+        return jsonify(response_body), 400 # Bloqueamos estados no permitidos para finalización
+
+    
+    payment.status = "FINALIZED"                  # Una vez el status del pago pasa a "FINALIZED", no se aceptaran futuras modificaciones
+    db.session.commit()
+
+    response_body['message'] = "Payment has been finalized successfully!"
+    response_body['payment_id'] = payment_id
+    return jsonify(response_body), 200
+
+
+@api.route('/reconcile-payments', methods=['PUT'])            # Vamos a sincronizar pagos con Square y nuestra BD
+@jwt_required()  
+def reconcile_payments():
+    response_body = {}  
+    current_user_email = get_jwt_identity()
+    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
+    if not user:
+        response_body['message'] = "User not found"
+        return jsonify(response_body), 400  
+
+    payments = db.session.execute(db.select(Payments)                      # Obtener todos los pagos registrados del usuario
+                                  .where(Payments.user_id == user.id)).scalars()
+    if not payments:                                                       
+        response_body['message'] = "No payments found for reconciliation"
+        return jsonify(response_body), 404
+
+    updated_payments = []                                        # En este Array/Lista guardaremos los pagos cuya información fue actualizada
+    for payment in payments:
+        result = square_client.payments.get_payment(payment.payment_id)    # Llamamos a Square y consultamos el estado del pago
+        if result.is_success():
+            square_status = result.body["payment"]["status"]               # Square nos devuelve el estado del pago (puede diferir en nuestra BD)
+
+            if payment.status != square_status:                            # Si el estado en Square es diferente, actualizamos nuestra BD
+                payment.status = square_status
+                updated_payments.append(payment.serialize())
+
+    if updated_payments:                                                   # Si hubo actualizaciones, guardamos los cambios en la BD
+        db.session.commit()
+
+    response_body['message'] = "Payment reconciliation completed!"
+    response_body['updated_payments'] = updated_payments
+    return jsonify(response_body), 200
+
+
+""" @api.route('/get-finalized-payments', methods=['GET'])        # Vamos a listar pagos finalizados del cliente
+@jwt_required()  
+def get_finalized_payments():
+    response_body = {}  
+    current_user_email = get_jwt_identity()
+    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
+    
+    if not user:
+        response_body['message'] = "User not found"
+        return jsonify(response_body), 400  
+
+    
+    finalized_payments = db.session.execute(                   # Obtener todos los pagos que han sido finalizados por el usuario
+        db.select(Payments).where(Payments.user_id == user.id, Payments.status == "FINALIZED")).scalars()
+    if not finalized_payments:
+        response_body['message'] = "No finalized payments found"
+        return jsonify(response_body), 404
+
+    response_body['message'] = "Finalized payments retrieved successfully!"
+    response_body['finalized_payments'] = [payment.serialize() for payment in finalized_payments]
+    return jsonify(response_body), 200 """
+
+
+@api.route('/get-invoices', methods=['GET'])                  # Consultamos las facturas del cliente
+@jwt_required() 
+def get_invoices():
+    response_body = {}  
+    current_user_email = get_jwt_identity()
+    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
+    if not user:
+        response_body['message'] = "User not found"
+        return jsonify(response_body), 400 
+    
+    invoices = db.session.execute(db.select(Payments)                                 # Obtener todas las facturas del usuario
+                                  .where(Payments.user_id == user.id)).scalars()
+    if not invoices:                                                                  # Validamos si el usuario tiene facturas registradas
+        response_body['message'] = "No invoices found"
+        return jsonify(response_body), 404
+
+    response_body['message'] = "Invoices retrieved successfully!"
+    response_body['invoices'] = [invoice.serialize() for invoice in invoices]
+    return jsonify(response_body), 200
+
 
 def import_movies():
     url = f'{os.getenv("URL_TMDB")}/now_playing'
