@@ -156,9 +156,18 @@ const getState = ({ getStore, getActions, setStore }) => {
 					{
 						method: 'GET',
 						headers: {
+							"Content-Type" : "Application/json",
 							"Authorization" : `Bearer ${token}`
 						},
 					})
+
+					if (!response.ok) {
+						console.log('Error', response.status, response.statusText);
+						return;
+					}
+
+					const data = await response.json()					
+					setStore({ productList: data.results })
 			}, 
 		}
 	};
