@@ -235,7 +235,7 @@ def get_showtime_seats(showtime_id):
     return response_body, 200
 
 @api.route('/products', methods=['GET', 'POST'])
-# @jwt_required()
+@jwt_required()
 def products():
     response_body = {}
     if request.method == 'GET':

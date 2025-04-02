@@ -10,6 +10,7 @@ const getState = ({ getStore, getActions, setStore }) => {
 			user: {},
 			movieList: [],
 			movieDetails: {},
+			productList: [],
 			alert: {text: '', visible: false, background: 'primary'},
 		},
 		actions: {
@@ -126,6 +127,16 @@ const getState = ({ getStore, getActions, setStore }) => {
 				const data = await response.json()
 				setStore({ movieList: data.results})
 			},
+			getProducts: async () => {
+				const token = localStorage.getItem('token')
+				const response = await fetch(`${process.env.BACKEND_URL}/api/products`, 
+					{
+						method: 'GET',
+						headers: {
+							"Authorization" : `Bearer ${token}`
+						},
+					})
+			}, 
 		}
 	};
 };
