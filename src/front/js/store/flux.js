@@ -113,6 +113,29 @@ const getState = ({ getStore, getActions, setStore }) => {
 				localStorage.setItem('token', data.access_token)
 				localStorage.setItem('user', JSON.stringify(data.results))
 			},
+			editProfile: async (userUpdate) =>{
+				const uri = `${process.env.BACKEND_URL}/api/user-detail`;
+				const token = localStorage.getItem('token');
+				const options ={
+					method: 'PUT',
+					headers: {
+						"Content-Type" : "Application/json",
+						"Authorization" : `Bearer ${token}`
+					},
+					body : JSON.stringify(userUpdate)
+				};
+				const response = await fetch(uri, options)
+				if (!response.ok){
+					console.error("Error update: ", response.status, response.statusText)
+					return
+				};
+				const data = await response.json();
+				console.log('soy el data del edit', data);
+				setStore({
+					user: data.results
+				})
+				localStorage.setItem('user', JSON.stringify(data.results))
+			},
 			logout: () => {
 				localStorage.removeItem('token');
 				localStorage.removeItem('user');
