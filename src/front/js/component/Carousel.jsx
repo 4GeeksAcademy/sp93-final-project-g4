@@ -8,10 +8,10 @@ export const CarouselHome = () => {
     const { store } = useContext(Context)
 
     return (
-        <Carousel>
+        <Carousel className="mt-3" fade>
             {
                 store.movieList.map((movie) => (
-                    <Carousel.Item key={movie.id}>
+                    <Carousel.Item key={movie.id} interval={2800}>
                         <img
                             src={`https://media.themoviedb.org/t/p/w1066_and_h600_bestv2${movie.backdrop_path}`}
                             className="d-block mx-auto carousel-image"
