@@ -184,7 +184,7 @@ class Products(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(), nullable=False)
     base_price = db.Column(db.Float, nullable=False)
-    category = db.Column(db.Enum("Bebida", "Comida", "Merch", "Cinema Ticket", name = "category"), nullable=False)
+    description = db.Column(db.String(), nullable=False)
 
     def __repr__(self):
         return f'<Product: {self.name}'
@@ -193,4 +193,4 @@ class Products(db.Model):
         return{ 'id': self.id,
                 'name': self.name,
                 'base_price': self.base_price,
-                'category': self.category,}
+                'description': self.description}
