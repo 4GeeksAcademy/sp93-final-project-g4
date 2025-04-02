@@ -10,9 +10,22 @@ const getState = ({ getStore, getActions, setStore }) => {
 			user: {},
 			movieList: [],
 			movieDetails: {},
+			showtimeMovie: [],
 			alert: {text: '', visible: false, background: 'primary'},
 		},
 		actions: {
+			getShowtimes: async (movieId) => {
+				const response = await fetch(`${process.env.BACKEND_URL}/api/showtime/${movieId}/details`)
+				{
+					method: 'GET'
+				}
+			if (!response.ok) {
+				console.log("Error getShowtimes: ", response.status, response.statusText)
+				return;
+			}
+			const data = await response.json()
+			setStore({showtimeMovie: data.showtime})
+			},
 			getMovieDetails: async (movieId) => {
 				const response = await fetch(`${process.env.BACKEND_URL}/api/movies/${movieId}`,
 					{
