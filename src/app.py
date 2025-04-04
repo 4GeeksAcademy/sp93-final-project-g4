@@ -11,7 +11,7 @@ from api.admin import setup_admin
 from api.commands import setup_commands
 from api.models import db
 from flask_jwt_extended import JWTManager
-from square.client import Client
+
 
 
 ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"

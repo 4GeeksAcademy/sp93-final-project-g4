@@ -196,21 +196,27 @@ class Products(db.Model):
                 'category': self.category,}
 
 
-class Payments(db.Model):  
+class Payments(db.Model):
     id = db.Column(db.Integer, primary_key=True)                                    # ID único del pago  
-    payment_id = db.Column(db.String, unique=True, nullable=False)                  # ID del pago en Square  
+    payment_id = db.Column(db.String, unique=True, nullable=False)                  # ID del pago en MONEI  
     amount = db.Column(db.Float, nullable=False)                                      
-    currency = db.Column(db.String, nullable=False, default="USD")    
-    status = db.Column(db.String, nullable=False)                                   # Estado del pago (ej. "COMPLETED")  
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)      # Usuario que realizó el pago  
+    currency = db.Column(db.String, nullable=False, default="EUR")                    
+    status = db.Column(db.String, nullable=False)                                   # Estado del pago (ej. "PENDING", "FAILED", "SUCCEED")  
+    description = db.Column(db.String, nullable=False)                                
+    payment_method = db.Column(db.String, nullable=True)                              
+    created_at = db.Column(db.Integer, nullable=False)                                
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)        
     user_to = db.relationship('Users', foreign_keys=[user_id], backref=db.backref('payments', lazy='select'))  
 
-    def serialize(self):  
-        return {  
-            "id": self.id,  
-            "payment_id": self.payment_id,  
-            "amount": self.amount,  
-            "currency": self.currency,  
-            "status": self.status,  
-            "user_email": self.user_to.email  
-        }  
+    def serialize(self):
+        return {
+            "id": self.id,
+            "payment_id": self.payment_id,
+            "amount": self.amount,
+            "currency": self.currency,
+            "status": self.status,
+            "description": self.description,
+            "payment_method": self.payment_method,
+            "created_at": self.created_at,
+            "user_email": self.user_to.email
+        }
