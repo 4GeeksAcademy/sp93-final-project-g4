@@ -36,7 +36,7 @@ const getState = ({ getStore, getActions, setStore }) => {
 					return;
 				}
 				const data = await response.json()
-				setStore({movieDetails: {...data.result, id: data.result.id}})
+				setStore({movieDetails: {...data.result, movieId}})
 			},
 			register: async (newUser) => {
 				const response = await fetch(`${process.env.BACKEND_URL}/api/register`, 

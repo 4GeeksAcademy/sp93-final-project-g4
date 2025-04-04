@@ -11,8 +11,8 @@ export const Home = () => {
 
     const handleMovies = (id) => {
         navigate(`/movies-details/${id}`)
-        // actions.getMovieDetails(id)
-        // console.log("este es el id: ",id)
+        actions.getMovieDetails(id)
+        actions.getShowtimes(id)
     }
 
     return (

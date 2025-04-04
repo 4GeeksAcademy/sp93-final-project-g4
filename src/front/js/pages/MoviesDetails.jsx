@@ -1,44 +1,29 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useState } from "react";
 import "../../styles/movies-details.css";
 import { Context } from "../store/appContext.js";
-import { useParams } from "react-router-dom";
+
 
 export const MoviesDetails = () => {
 
     const { store, actions } = useContext(Context);
-    const { movieId } = useParams();
     const [ selectedDay, setSelectedDay ] = useState(null);
 
-    useEffect(() => {
-        actions.getMovieDetails(movieId);
-        actions.getShowtimes(movieId)
-    }, [movieId]);
-
-    
-    const movie = store.movieDetails;
-    if (!movie) {
-        return <p>Cargando detalles de la película...</p>;
-    };
-    
-    const showtimes = store.showtimeMovie;
-    const dateDay = showtimes.reduce((listShowtime, showtime) => {
+    const dateDay = store.showtimeMovie.reduce((listShowtime, showtime) => {
         const day = showtime.date_time_day;
         if (!listShowtime[day]) listShowtime[day] = [];
         listShowtime[day].push(showtime)
         return listShowtime;
     }, {});
 
-    useEffect(() => {
-        const allDays = Object.keys(dateDay);
-        if (allDays.length > 0 && !selectedDay) {
-            setSelectedDay(allDays[0]);
-        }
-    }, [store.showtimeMovie]);
+    const allDays = Object.keys(dateDay);
+    if (allDays.length > 0 && !selectedDay) {
+        setSelectedDay(allDays[0]);
+    }
 
     return (
         <div style={{background: "linear-gradient(150deg, rgba(0, 0, 0, 1) 0%, rgba(31, 1, 56, 1) 68%, rgba(61, 3, 56, 1) 100%)"}}>
             <div className="billboard mb-3">
-                <img src={`https://image.tmdb.org/t/p/original${movie.backdrop_path}`} alt={movie.title}></img>
+                <img src={`https://image.tmdb.org/t/p/original${store.movieDetails.backdrop_path}`} alt={store.movieDetails.title}></img>
             </div>
             <div style={{ marginLeft: "1%" }}>
                 <div className="d-flex flex-wrap mb-4" style={{ marginLeft: "10%", marginRight: "10%", backgroundColor: "black" }}>
@@ -57,19 +42,19 @@ export const MoviesDetails = () => {
                         <div className="shadow-sm d-flex flex-row align-items-center" style={{fontSize: "large"}}>
                             <img 
                                 className="img-fluid" 
-                                src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
-                                alt={movie.title}
+                                src={`https://image.tmdb.org/t/p/w500${store.movieDetails.poster_path}`}
+                                alt={store.movieDetails.title}
                                 style={{ width: "200px", height: "auto", borderRadius: "10px" }}>
                             </img>
                             <div className="p-3">
-                                <h5 className="mt-3" style={{ marginLeft: "20%", marginBottom: "10%" }}>{movie.title}</h5>
+                                <h5 className="mt-3" style={{ marginLeft: "20%", marginBottom: "10%" }}>{store.movieDetails.title}</h5>
                                 <p className="mt-3" style={{ marginLeft: "20%", marginTop: "10%", marginBottom: "10%" }}>
                                    <img 
                                         src="https://aficine.com/wp-content/themes/aficine-v2/assets/img/todoslospublicos.png" 
                                         style={{ width: "30px", height: "30px", marginRight: "15px" }} 
                                         alt="adult"
                                     />
-                                    {movie.adult ? "Solo para adultos" : "Apto para todo el público"}
+                                    {store.movieDetails.adult ? "Solo para adultos" : "Apto para todo el público"}
                                 </p>
                                 <div className="d-flex flex-row justify-content-start" style={{ marginLeft: "20%", marginTop: "10%" }}>
                                     <div className="d-flex align-items-center me-5">
@@ -78,7 +63,7 @@ export const MoviesDetails = () => {
                                             style={{ width: "30px", height: "30px", marginRight: "10px", verticalAlign: "middle" }} 
                                             alt="runtime"
                                         />
-                                        <span>{movie.runtime} min</span>
+                                        <span>{store.movieDetails.runtime} min</span>
                                     </div>
                                     <div className="d-flex align-items-center ms-5">
                                         <img 
@@ -86,7 +71,7 @@ export const MoviesDetails = () => {
                                             style={{ width: "30px", height: "30px", marginRight: "10px" }} 
                                             alt="genre"
                                         />
-                                        <span>{movie.genre}</span>
+                                        <span>{store.movieDetails.genre}</span>
                                     </div>
                                 </div>
                             </div>
@@ -125,7 +110,7 @@ export const MoviesDetails = () => {
             )}
             <div className="detalles" style={{ marginLeft: "15%", marginRight: "15%" }}>                           
                 <h1>OVERVIEW</h1>
-                <p>{movie.overview}</p>
+                <p>{store.movieDetails.overview}</p>
                 {/* <h5>DIRECTOR</h5>
                 <p>{movie.director || "No disponible"}</p>
                 <h5>ACTORS</h5>
