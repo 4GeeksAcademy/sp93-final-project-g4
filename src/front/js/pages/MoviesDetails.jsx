@@ -1,55 +1,69 @@
-import React, { useContext, useEffect } from "react";
+import React, { useContext, useState } from "react";
 import "../../styles/movies-details.css";
 import { Context } from "../store/appContext.js";
-import { useParams } from "react-router-dom";
+
 
 export const MoviesDetails = () => {
 
     const { store, actions } = useContext(Context);
-    const { movieId } = useParams();
+    const [ selectedDay, setSelectedDay ] = useState(null);
 
-    useEffect(() => {
-        actions.getMovieDetails(movieId)
-    }, [movieId]);
+    const dateDay = store.showtimeMovie.reduce((listShowtime, showtime) => {
+        const day = showtime.date_time_day;
+        if (!listShowtime[day]) listShowtime[day] = [];
+        listShowtime[day].push(showtime)
+        return listShowtime;
+    }, {});
 
-    const movie = store.movieDetails;
-    if (!movie) {
-        return <p>Cargando detalles de la película...</p>;
-    };
+    const allDays = Object.keys(dateDay);
+    if (allDays.length > 0 && !selectedDay) {
+        setSelectedDay(allDays[0]);
+    }
 
     return (
-        <div>
+        <div style={{background: "linear-gradient(150deg, rgba(0, 0, 0, 1) 0%, rgba(31, 1, 56, 1) 68%, rgba(61, 3, 56, 1) 100%)"}}>
             <div className="billboard mb-3">
-                <img src={`https://image.tmdb.org/t/p/original${movie.backdrop_path}`} alt={movie.title}></img>
+                <img src={`https://image.tmdb.org/t/p/original${store.movieDetails.backdrop_path}`} alt={store.movieDetails.title}></img>
             </div>
-            <div style={{marginLeft: "1%"}}>
-                <div className="justify-content-start mb-3" style={{marginLeft: "10%"}}>
+            <div style={{ marginLeft: "1%" }}>
+                <div className="d-flex flex-wrap mb-4" style={{ marginLeft: "10%", marginRight: "10%", backgroundColor: "black" }}>
+                    {Object.keys(dateDay).map((day => (
+                        <button 
+                            key={day} onClick={() => setSelectedDay(day)} 
+                            className={`btn mx-2 mb-2 ${selectedDay === day ? 'btn-light' : 'btn-outline-light'}`}
+                            style={{ borderRadius: "20px", padding: "10px 20px" }}
+                        >
+                            {day}
+                        </button>
+                    )))}
+                </div>
+                <div className="justify-content-start mb-3" style={{ marginLeft: "10%" }}>
                     <div className="col-md-7"> 
                         <div className="shadow-sm d-flex flex-row align-items-center" style={{fontSize: "large"}}>
                             <img 
                                 className="img-fluid" 
-                                src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
-                                alt={movie.title}
+                                src={`https://image.tmdb.org/t/p/w500${store.movieDetails.poster_path}`}
+                                alt={store.movieDetails.title}
                                 style={{ width: "200px", height: "auto", borderRadius: "10px" }}>
                             </img>
                             <div className="p-3">
-                                <h5 className="mt-3" style={{marginLeft: "20%"}}>{movie.title}</h5>
-                                <p className="mt-3" style={{marginLeft: "20%"}}>
+                                <h5 className="mt-3" style={{ marginLeft: "20%", marginBottom: "10%" }}>{store.movieDetails.title}</h5>
+                                <p className="mt-3" style={{ marginLeft: "20%", marginTop: "10%", marginBottom: "10%" }}>
                                    <img 
                                         src="https://aficine.com/wp-content/themes/aficine-v2/assets/img/todoslospublicos.png" 
                                         style={{ width: "30px", height: "30px", marginRight: "15px" }} 
                                         alt="adult"
                                     />
-                                    {movie.adult ? "Solo para adultos" : "Apto para todo el público"}
+                                    {store.movieDetails.adult ? "Solo para adultos" : "Apto para todo el público"}
                                 </p>
-                                <div className="d-flex flex-row justify-content-start" style={{ marginLeft: "20%" }}>
+                                <div className="d-flex flex-row justify-content-start" style={{ marginLeft: "20%", marginTop: "10%" }}>
                                     <div className="d-flex align-items-center me-5">
                                         <img 
                                             src="https://cdn-icons-png.freepik.com/256/4304/4304194.png" 
                                             style={{ width: "30px", height: "30px", marginRight: "10px", verticalAlign: "middle" }} 
                                             alt="runtime"
                                         />
-                                        <span>{movie.runtime} min</span>
+                                        <span>{store.movieDetails.runtime} min</span>
                                     </div>
                                     <div className="d-flex align-items-center ms-5">
                                         <img 
@@ -57,7 +71,7 @@ export const MoviesDetails = () => {
                                             style={{ width: "30px", height: "30px", marginRight: "10px" }} 
                                             alt="genre"
                                         />
-                                        <span>{movie.genre}</span>
+                                        <span>{store.movieDetails.genre}</span>
                                     </div>
                                 </div>
                             </div>
@@ -65,24 +79,38 @@ export const MoviesDetails = () => {
                     </div>
                 </div>
             </div>
-            <div className="row justify-content-start mb-3" style={{marginLeft: "11%", marginRight: "10%"}}>
-                <div className="col-12" style={{marginRight: "60%"}}>
-                    <div className="d-flex flex-row bg-dark mb-3 w-100" style={{borderRadius: "5px", fontSize: "large"}}>
-                        <div className="mx-3" style={{borderRadius: "5px", color: "white", padding: "5px"}}>Sala 1: </div>
-                        <div className="mx-5 btn btn-outline-secondary" style={{borderRadius: "5px", color: "white", border: "2px solid white", padding: "5px", borderRadius: "20px", paddingLeft: "20px", paddingRight: "20px"}}>17:10</div>
-                        <div className="mx-5 btn btn-outline-secondary" style={{borderRadius: "5px", color: "white", border: "2px solid white", padding: "5px", borderRadius: "20px", paddingLeft: "20px", paddingRight: "20px"}}>19:10</div>
-                        <div className="mx-5 btn btn-outline-secondary" style={{borderRadius: "5px", color: "white", border: "2px solid white", padding: "5px", borderRadius: "20px", paddingLeft: "20px", paddingRight: "20px"}}>21:30</div>
-                    </div>                      
-                    <div className="d-flex flex-row bg-dark mb-3 w-100" style={{borderRadius: "5px", fontSize: "large"}}>
-                        <div className="mx-3" style={{borderRadius: "5px", color: "white", padding: "5px"}}>Sala 2: </div>
-                        <div className="mx-5 btn btn-outline-secondary" style={{borderRadius: "5px", color: "white", border: "2px solid white", padding: "5px", borderRadius: "20px", paddingLeft: "20px", paddingRight: "20px"}}>17:00</div>
-                        <div className="mx-5 btn btn-outline-secondary" style={{borderRadius: "5px", color: "white", border: "2px solid white", padding: "5px", borderRadius: "20px", paddingLeft: "20px", paddingRight: "20px"}}>19:20</div>
-                    </div>                      
+            {selectedDay && (
+                <div className="row justify-content-start mb-3" style={{ marginLeft: "10%", marginRight: "10%" }}>
+                    <div className="col-12">
+                        {Object.entries(
+                            dateDay[selectedDay].reduce((groupedByRoom, showtime) => {
+                                const room = showtime.cinema_room;
+                                if (!groupedByRoom[room]) groupedByRoom[room] = [];
+                                groupedByRoom[room].push(showtime);
+                                return groupedByRoom
+                            }, {})
+                            ).map(([roomName, horarios]) => (
+                                <div
+                                    className="d-flex flex-row bg-dark mb-3 w-100"
+                                    style={{ borderRadius: "5px", fontSize: "large" }}
+                                    key={roomName}
+                                >
+                                    <div className="mx-3" style={{ color: "white", padding: "5px" }}>
+                                        {roomName}: 
+                                    </div>
+                                    {horarios.map((hora) => (
+                                        <div key={hora.id} className="mx-3 btn btn-outline-secondary" style={{ color: "white", border: "2px solid white", padding: "5px 20px", borderRadius: "20px" }}>
+                                            {hora.date_time_hour}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                    </div>
                 </div>
-            </div>
-            <div className="detalles row justify-content-start mb-3" style={{marginLeft: "15%", marginRight: "15%"}}>                           
+            )}
+            <div className="detalles" style={{ marginLeft: "15%", marginRight: "15%" }}>                           
                 <h1>OVERVIEW</h1>
-                <p>{movie.overview}</p>
+                <p>{store.movieDetails.overview}</p>
                 {/* <h5>DIRECTOR</h5>
                 <p>{movie.director || "No disponible"}</p>
                 <h5>ACTORS</h5>
@@ -92,7 +120,7 @@ export const MoviesDetails = () => {
                 <h1>TRAILER</h1>
                 <iframe 
                     width="1047" 
-                    height="445" 
+                    height="445"
                     src="https://www.youtube.com/embed/j-RpvIuazmc" 
                     title="Stromae, Pomme - &quot;Ma Meilleure Ennemie&quot; (de la segunda temporada de Arcane) [Videoclip oficial]" 
                     frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
