@@ -27,15 +27,17 @@ export const MoviesDetails = () => {
             </div>
             <div style={{ marginLeft: "1%" }}>
                 <div className="d-flex flex-wrap mb-4" style={{ marginLeft: "10%", marginRight: "10%", backgroundColor: "black" }}>
-                    {Object.keys(dateDay).map((day => (
-                        <button 
-                            key={day} onClick={() => setSelectedDay(day)} 
-                            className={`btn mx-2 mb-2 ${selectedDay === day ? 'btn-light' : 'btn-outline-light'}`}
-                            style={{ borderRadius: "20px", padding: "10px 20px" }}
-                        >
-                            {day}
-                        </button>
-                    )))}
+                    {allDays.length  > 0 ? (
+                        allDays.map((day) => (
+                            <button
+                                key={day} onClick={() => setSelectedDay(day)} className={`btn mx-2 mb-2 &{selectDay === day ? 'btn-ligth' : 'btn-outline-ligth'}`} style={{ borderRadius: "20PX", padding: "10px 20px" }}
+                            >
+                                {day}
+                            </button>
+                        ))
+                    ) : (
+                        <p></p>
+                    )}
                 </div>
                 <div className="justify-content-start mb-3" style={{ marginLeft: "10%" }}>
                     <div className="col-md-7"> 
@@ -79,15 +81,15 @@ export const MoviesDetails = () => {
                     </div>
                 </div>
             </div>
-            {selectedDay && (
-                <div className="row justify-content-start mb-3" style={{ marginLeft: "10%", marginRight: "10%" }}>
-                    <div className="col-12">
-                        {Object.entries(
-                            dateDay[selectedDay].reduce((groupedByRoom, showtime) => {
+            <div className="row justify-content-start mb-3" style={{ marginLeft: "10%", marginRight: "10%" }}>
+                <div className="col-12">
+                    {selectedDay && dateDay[selectedDay] && dateDay[selectedDay].length > 0 ? ( 
+                        Object.entries(
+                            dateDay[selectedDay].reduce((groupedRoom, showtime) => {
                                 const room = showtime.cinema_room;
-                                if (!groupedByRoom[room]) groupedByRoom[room] = [];
-                                groupedByRoom[room].push(showtime);
-                                return groupedByRoom
+                                if (!groupedRoom[room]) groupedRoom[room] = [];
+                                groupedRoom[room].push(showtime);
+                                return groupedRoom
                             }, {})
                             ).map(([roomName, horarios]) => (
                                 <div
@@ -98,16 +100,22 @@ export const MoviesDetails = () => {
                                     <div className="mx-3" style={{ color: "white", padding: "5px" }}>
                                         {roomName}: 
                                     </div>
-                                    {horarios.map((hora) => (
-                                        <div key={hora.id} className="mx-3 btn btn-outline-secondary" style={{ color: "white", border: "2px solid white", padding: "5px 20px", borderRadius: "20px" }}>
-                                            {hora.date_time_hour}
-                                        </div>
-                                    ))}
+                                    {horarios.length > 0 ? (
+                                        horarios.map((hora) => (
+                                            <div key={hora.id} className="mx-3 btn btn-outline-secondary" style={{ color: "white", border: "2px solid white", padding: "5px 20px", borderRadius: "20px" }}>
+                                                {hora.date_time_hour}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div></div>
+                                    )}
                                 </div>
-                            ))}
-                    </div>
+                            ))
+                        ) : (
+                            <div></div>
+                        )}
                 </div>
-            )}
+            </div>
             <div className="detalles" style={{ marginLeft: "15%", marginRight: "15%" }}>                           
                 <h1>OVERVIEW</h1>
                 <p>{store.movieDetails.overview}</p>
