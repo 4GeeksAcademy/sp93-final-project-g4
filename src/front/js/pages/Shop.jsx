@@ -1,4 +1,4 @@
-import React, { useContext, useState  } from "react";
+import React, { useContext, useState } from "react";
 import Card from 'react-bootstrap/Card';
 import ListGroup from 'react-bootstrap/ListGroup';
 import Badge from 'react-bootstrap/Badge';
@@ -17,14 +17,13 @@ export const Shop = () => {
     //         [productId]: Math.max((productQuantities[productId] || 0) + change, 0),
     //     });
     // };
-    
+
     const handleAddToCart = (productId) => {
         // const quantity = productQuantities[productId];
         const purchasedProduct = {
             product_id: productId,
             // quantity: quantity,
         };
-        // console.log(purchasedProduct)
         actions.addCart(purchasedProduct);
     };
 
@@ -45,7 +44,7 @@ export const Shop = () => {
                     <ListGroup className="list-group-flush">
                         {
                             store.productList.map((p) => (
-                            
+
                                 <ListGroup.Item key={p.id}>
                                     <div className="d-flex justify-content-between">
                                         <div className="w-75">
@@ -104,13 +103,23 @@ export const Shop = () => {
 
                         <p className="pt-4">Snack</p>
                         <hr />
-                        <div>
-                            <p className="ms-5 fw-bold">Menú Cine</p>
-                            <div className="d-flex justify-content-around" style={{ marginTop: '-10px' }}>
-                                <span>2x</span>
-                                <span>+6,50 €</span>
-                            </div>
-                        </div>
+                        {
+                                store.showCart.cart !== undefined ? (
+                                store.showCart.cart.map((c) => (
+                                    <div key={c.product_id}>
+                                        <p className="text-center fw-bold">{c.name}</p>
+                                        <div className="d-flex justify-content-around" style={{ marginTop: '-10px' }}>
+                                            <span>{c.quantity}x</span>
+                                            <span>+{c.unit_price} €</span>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <span className="text-secondary">{store.showCart.message}</span>
+                            )
+                        }
+
+
                     </Card.Body>
                 </Card>
             </div>

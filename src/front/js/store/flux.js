@@ -11,7 +11,7 @@ const getState = ({ getStore, getActions, setStore }) => {
 			movieList: [],
 			movieDetails: {},
 			productList: [],
-			cart: [],
+			showCart: [],
 			alert: {text: '', visible: false, background: 'primary'},
 		},
 		actions: {
@@ -187,13 +187,31 @@ const getState = ({ getStore, getActions, setStore }) => {
 				}
 
 				const data = await response.json()
-				console.log(data)
 				
 				setStore({ alert: { visible: true, text: `${data.message}`, background: "success" } })
 				setTimeout(() => {
 					setStore({ alert: { visible: false, text: "", background: "" } });
 				}, 2000);
+				getActions().viewCart()
 				
+			},
+			viewCart: async () => {
+				const token = localStorage.getItem('token')
+				const response = await fetch(`${process.env.BACKEND_URL}/api/cart`,
+					{
+						method: 'GET',
+						headers: {
+							"Authorization" : `Bearer ${token}`
+						}
+					})
+				
+				if (!response.ok) {
+					console.log('Error', response.status, response.statusText);
+					return;
+				}
+
+				const data = await response.json()
+				setStore({ showCart: data})
 			},
 		}
 	};
