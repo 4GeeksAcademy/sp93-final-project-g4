@@ -1,0 +1,24 @@
+form{
+    --bs-box-shadow-lg: 0 1rem 3rem rgba(238, 96, 91, 0.538);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 2;
+    transform: translate(-50%, -50%);
+    padding: 20px;
+    border-radius: 10px;
+    background-color: rgba(19, 0, 48, 0.889);
+    text-align: center;
+    text-shadow: -2px 2px 0px #9206f88a;
+    color: #eaeaea;
+    
+}
+
+.login-carousel {
+    width: 216vh; 
+    height: 600px; 
+    object-fit: cover !important;
+    border-radius: 10px; 
+    object-position: center !important; 
+    overflow: hidden;
+  }

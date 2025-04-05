@@ -105,7 +105,7 @@ def store_cinema():
     bookings = user_bookings(user.id)
 
     if not bookings:
-        response_body['message'] = 'You need to reserve a ticket before you can buy in our Cinema Store'
+        response_body['message'] = "You don't have any reservation"
         return response_body, 400
     if request.method == 'GET':
 
@@ -260,14 +260,12 @@ def user_profile():
     
     if request.method == 'PUT':
         data = request.json
-        if 'username' in data:
-            user.username = data['username']
-        if 'email' in data:
-            user.email = data['email']
+        user.username = data.get('username', user.username)
+        user.email = data.get('email', user.email)
         db.session.commit()
+        
         response_body['message'] = 'Your Profile is Updated Successfully!'
-        new_token = create_access_token(identity=user.email)
-        response_body['new_token'] = new_token
+        response_body['results'] = user.serialize()
         return response_body, 200
     
 

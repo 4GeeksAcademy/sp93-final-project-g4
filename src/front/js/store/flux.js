@@ -11,9 +11,22 @@ const getState = ({ getStore, getActions, setStore }) => {
 			movieList: [],
 			movieDetails: {},
 			showtimeId: {},
+			showtimeMovie: [],
 			alert: {text: '', visible: false, background: 'primary'},
 		},
 		actions: {
+			getShowtimes: async (movieId) => {
+				const response = await fetch(`${process.env.BACKEND_URL}/api/showtime/${movieId}/details`)
+				{
+					method: 'GET'
+				}
+			if (!response.ok) {
+				console.log("Error getShowtimes: ", response.status, response.statusText)
+				return;
+			}
+			const data = await response.json()
+			setStore({showtimeMovie: data.showtime})
+			},
 			getMovieDetails: async (movieId) => {
 				const response = await fetch(`${process.env.BACKEND_URL}/api/movies/${movieId}`,
 					{
@@ -24,7 +37,7 @@ const getState = ({ getStore, getActions, setStore }) => {
 					return;
 				}
 				const data = await response.json()
-				setStore({movieDetails: {...data.result, id: data.result.id}})
+				setStore({movieDetails: {...data.result, movieId}})
 			},
 			register: async (newUser) => {
 				const response = await fetch(`${process.env.BACKEND_URL}/api/register`, 
@@ -99,6 +112,29 @@ const getState = ({ getStore, getActions, setStore }) => {
 				}, 2000);
 				
 				localStorage.setItem('token', data.access_token)
+				localStorage.setItem('user', JSON.stringify(data.results))
+			},
+			editProfile: async (userUpdate) =>{
+				const uri = `${process.env.BACKEND_URL}/api/user-detail`;
+				const token = localStorage.getItem('token');
+				const options ={
+					method: 'PUT',
+					headers: {
+						"Content-Type" : "Application/json",
+						"Authorization" : `Bearer ${token}`
+					},
+					body : JSON.stringify(userUpdate)
+				};
+				const response = await fetch(uri, options)
+				if (!response.ok){
+					console.error("Error update: ", response.status, response.statusText)
+					return
+				};
+				const data = await response.json();
+				console.log('soy el data del edit', data);
+				setStore({
+					user: data.results
+				})
 				localStorage.setItem('user', JSON.stringify(data.results))
 			},
 			logout: () => {

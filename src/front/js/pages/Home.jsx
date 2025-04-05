@@ -11,16 +11,16 @@ export const Home = () => {
 
     const handleMovies = (id) => {
         navigate(`/movies-details/${id}`)
-        // actions.getMovieDetails(id)
-        // console.log("este es el id: ",id)
+        actions.getMovieDetails(id)
+        actions.getShowtimes(id)
     }
 
     return (
 
-        <div>
+        <div style={{background: "linear-gradient(150deg, rgba(0, 0, 0, 1) 0%, rgba(31, 1, 56, 1) 68%, rgba(61, 3, 56, 1) 88%)"}}>
             <CarouselHome />
             <div className="container mt-5">
-                <h4> <span className="text-light fs-2">Cinema Center /</span> Cartelera</h4>
+                <h4> <span className="text-light fs-2">Cinema Center /</span> New Movies</h4>
                 <hr className="border border-primary border-3 opacity-75" />
                 <div className="row row-cols-1 row-cols-md-4 g-4"  >
                     {store.movieList.map((movie) => (
