@@ -9,80 +9,82 @@ import { Context } from "../store/appContext";
 export const BookingSesion = () => {
 
   const { store } = useContext(Context);
+  // const [ seats, setSeats ] = useState(seatsInitial)
+  const [selectedSeat, setSelectedSeat] = useState([])
+  const showtime = store.showtimeId;
 
-  print(store.showtimeId)
+  const { row_max, col_max, reserved_seats = [] } = showtime;
 
-  const seatsInitial = [
-    [0, 0, 0, 0, 0],  
-    [1, 0, 0, 0, 0],  
-    [0, 0, 2, 0, 0],  
-    [0, 0, 0, 1, 0],  
-    [0, 0, 0, 0, 0], 
-  ];
-
-  const [ seats, setSeats ] = useState(seatsInitial)
-  const [ selectedSeat, setSelectedSeat ] = useState(null)
-
-  const getSeatImage = (status) => {
-    if (status === 1) {
-      return butacaReservada; // Asiento reservado
-    } else if (status === 2) {
-      return butacaSeleccionada; // Asiento seleccionado
-    } else {
-      return butacaSimple; // Asiento disponible
+  const seats = [];
+  for (let row = 1; row <= row_max; row++) {
+    const seatRow = [];
+    for (let col = 1; col <= col_max; col++) {
+      const isReserved = reserved_seats.some(
+        seat => seat.row === row && seat.col === col
+      );
+      seatRow.push({ row, col, isReserved });
     }
-  };
+    seats.push(seatRow);
+  }
 
-  const handleSeat = (rowIndex, colIndex) => {
-    
-    if (seats[rowIndex][colIndex] === 1) return;
+  const isSelected = (row, col) => {
+    return selectedSeat.some(seat => seat.row === row && seat.col === col);
+  }
 
-    const updatedSeats = seats.map((row, rIndex) =>
-      row.map((seat, cIndex) => {
-        if (rIndex === rowIndex && cIndex === colIndex) {
-          if (seat === 2) {
-            return 0; 
-          } else {
-            return 2; 
-          }
-        }
-        return seat; 
-      })
-    );
+  const toggleSeat = (row, col) => {
+    if (seats[row - 1][col - 1].isReserved) return;
 
-    setSeats(updatedSeats);
+    const exists = isSelected(row, col);
 
-    if (updatedSeats[rowIndex][colIndex] === 2) {
-      setSelectedSeat({ row: rowIndex + 1, col: colIndex + 1 });
+    if (exists) {
+      setSelectedSeat(prev => prev.filter(seat => seat.row !== row || seat.col !== col));
     } else {
-      setSelectedSeat(null);
+      setSelectedSeat(prev => [...prev, { row, col }]);
     }
   };
 
   return (
     <div className="container mt-5 text-center">
-      {/* Pantalla */}
       <div className="screen my-3">Pantalla</div>
 
       <div className="seats">
         {seats.map((row, rowIndex) => (
-          <div key={rowIndex} className="seat-row d-flex justify-content-center">
-            {row.map((seat, colIndex) => (
-              <div key={colIndex} className="seat" onClick={() => handleSeat(rowIndex, colIndex)}>
-                <img 
-                  src={getSeatImage(seat)} 
-                  alt={`butaca ${rowIndex + 1}-${colIndex + 1}`} 
-                  className="seat-img" 
+          <div key={rowIndex} className="d-flex justify-content-center mb-2">
+            {row.map((seat) => {
+              const { row, col, isReserved } = seat;
+              const selected = isSelected(row, col);
+
+              let seatImage = butacaSimple;
+              if (isReserved) seatImage = butacaReservada;
+              else if (selected) seatImage = butacaSeleccionada;
+
+              return (
+                <img
+                  key={`${row}-${col}`}
+                  src={seatImage}
+                  alt={`Asiento ${row}-${col}`}
+                  onClick={() => toggleSeat(row, col)}
+                  style={{
+                    width: "40px",
+                    height: "40px",
+                    margin: "5px",
+                    cursor: isReserved ? "not-allowed" : "pointer",
+                  }}
                 />
-              </div>
-            ))}
+              );
+            })}
           </div>
         ))}
       </div>
 
-      {selectedSeat && (
+      {selectedSeat.length > 0 && (
         <div className="mt-3">
-          <p>Asiento seleccionado: Fila {selectedSeat.row}, Columna {selectedSeat.col}</p>
+          <p>Asientos seleccionados:</p>
+          <ul style={{listStyle: "none"}}>
+            {selectedSeat.map((seat, i) => (
+              <li key={i}>Fila {seat.row}, Columna {seat.col}</li>
+            ))}
+          </ul>
         </div>
       )}
     </div>

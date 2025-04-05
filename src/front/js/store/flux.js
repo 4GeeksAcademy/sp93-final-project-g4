@@ -16,10 +16,11 @@ const getState = ({ getStore, getActions, setStore }) => {
 		},
 		actions: {
 			getShowtimes: async (movieId) => {
-				const response = await fetch(`${process.env.BACKEND_URL}/api/showtime/${movieId}/details`)
-				{
-					method: 'GET'
-				}
+				const response = await fetch(`${process.env.BACKEND_URL}/api/showtime/${movieId}/details`,
+					{
+						method: 'GET'
+					})
+				
 			if (!response.ok) {
 				console.log("Error getShowtimes: ", response.status, response.statusText)
 				return;
@@ -163,8 +164,8 @@ const getState = ({ getStore, getActions, setStore }) => {
 				const data = await response.json()
 				setStore({ movieList: data.results})
 			},
-			getShowtime: async (showtime) => {
-			 const response = await fetch(`${process.env.BACKEND_URL}/api/showtime/${showtime}/seats`,
+			getShowtimeSeats: async (showtimeId) => {
+			 const response = await fetch(`${process.env.BACKEND_URL}/api/showtime/${showtimeId}/seats`,
 				{
 					method: 'GET'
 				})
