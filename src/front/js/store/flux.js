@@ -11,6 +11,7 @@ const getState = ({ getStore, getActions, setStore }) => {
 			movieList: [],
 			movieDetails: {},
 			productList: [],
+			cart: [],
 			alert: {text: '', visible: false, background: 'primary'},
 		},
 		actions: {
@@ -156,19 +157,44 @@ const getState = ({ getStore, getActions, setStore }) => {
 					{
 						method: 'GET',
 						headers: {
-							"Content-Type" : "Application/json",
 							"Authorization" : `Bearer ${token}`
 						},
 					})
-
+										
 					if (!response.ok) {
 						console.log('Error', response.status, response.statusText);
 						return;
 					}
 
-					const data = await response.json()					
+					const data = await response.json()			
 					setStore({ productList: data.results })
 			}, 
+			addCart: async (product) => {
+				const token = localStorage.getItem('token')
+				const response = await fetch(`${process.env.BACKEND_URL}/api/cart/add`, 
+					{
+						method: 'POST',
+						headers: {
+							"Content-Type" : "Application/json",
+							"Authorization" : `Bearer ${token}`
+						},
+						body: JSON.stringify(product)
+					})
+
+				if (!response.ok){
+					console.log('Error', response.status, response.statusText);
+					return;
+				}
+
+				const data = await response.json()
+				console.log(data)
+				
+				setStore({ alert: { visible: true, text: `${data.message}`, background: "success" } })
+				setTimeout(() => {
+					setStore({ alert: { visible: false, text: "", background: "" } });
+				}, 2000);
+				
+			},
 		}
 	};
 };
