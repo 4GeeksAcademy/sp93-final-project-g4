@@ -101,7 +101,8 @@ class ShowTimes(db.Model):
 
     def serialize(self):
         return{ 'id': self.id,
-                'date_time': self.date_time.strftime("%d/%m/%Y %H:%M"),
+                'date_time_hour': self.date_time.strftime("%H:%M"),
+                'date_time_day': self.date_time.strftime("%d/%m"),
                 'movie_id': self.movie_id,
                 'cinema_room': self.cinema_room_to.name,
                 'available_seats': self.available,

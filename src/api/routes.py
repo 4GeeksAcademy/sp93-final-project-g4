@@ -262,7 +262,7 @@ def store_cinema():
     bookings = user_bookings(user.id)
 
     if not bookings:
-        response_body['message'] = 'You need to reserve a ticket before you can buy in our Cinema Store'
+        response_body['message'] = "You don't have any reservation"
         return response_body, 400
     if request.method == 'GET':
 
