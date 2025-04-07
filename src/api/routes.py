@@ -3,7 +3,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 """
 from flask import Flask, request, jsonify, url_for, Blueprint
 from api.utils import generate_sitemap, APIException
-from api.models import db, Users, Bookings, CinemaRooms, ShowTimes, Movies, Sales, SalesLines, Products
+from api.models import db, Users, Bookings, CinemaRooms, ShowTimes, Movies, Sales, SalesLines, Products, Cart, CartItem
 from flask_cors import CORS
 import requests
 import os
@@ -95,6 +95,163 @@ def get_movie_details(movie_id):
     return jsonify(response_body), 200 
 
 
+@api.route('/cart/add', methods=['POST'])
+@jwt_required()
+def add_to_cart():
+    response_body = {}
+    data = request.get_json()
+    product_id = data.get('product_id')
+    quantity = data.get('quantity', 1)
+
+    if not product_id:
+        return {"message": "Product ID is required"}, 400
+
+    current_user_email = get_jwt_identity()
+    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
+
+    # Obtener o crear el carrito
+    cart = db.session.execute(db.select(Cart).where(Cart.user_id == user.id)).scalar()
+    if not cart:
+        cart = Cart(user_id=user.id)
+        db.session.add(cart)
+        db.session.commit()
+
+    # Verificar si el producto ya está en el carrito
+    cart_item = db.session.execute(
+        db.select(CartItem).where(
+            CartItem.cart_id == cart.id,
+            CartItem.product_id == product_id
+        )
+    ).scalar()
+
+    if cart_item:
+        cart_item.quantity += quantity
+    else:
+        new_item = CartItem(cart_id=cart.id, product_id=product_id, quantity=1)
+        db.session.add(new_item)
+
+    db.session.commit()
+    response_body["message"] = "Product added to cart"
+    return response_body, 200
+
+
+@api.route('/book-ticket', methods=['POST'])
+@jwt_required()
+def book_ticket():
+    response_body = {}
+    current_user_email = get_jwt_identity()
+    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
+    if not user:
+        return jsonify({'message': "User not found"}), 400
+    
+    data = request.json
+    print('book-ticket data:', data)
+    showtime_id = data.get('showtime_id')
+    seats_booked = data.get('seats_booked', [])
+
+    if showtime_id is None or not seats_booked:
+        return jsonify({'message': 'Missing required fields'}), 400
+
+    showtime = db.session.execute(db.select(ShowTimes).where(ShowTimes.id == showtime_id)).scalar()
+    if not showtime:
+        return jsonify({'message': 'Showtime not found'}), 404
+    
+    cinema_room = showtime.cinema_room_to
+    new_bookings = []
+    
+    for seat in seats_booked:
+        row = seat.get('row')
+        col = seat.get('col')
+        if {"row": row, "col": col} in showtime.get_reserved_seats():
+            return jsonify({'message': 'The seat is already reserved'}), 400
+        if row < 1 or row > cinema_room.cinema_row or col < 1 or col > cinema_room.cinema_col:
+            return jsonify({'message': 'Invalid seat selection'}), 400
+        
+        showtime.reserve_seat(row, col)
+        showtime.available -= 1
+        
+        # Crear la reserva
+        new_booking = Bookings(
+            user_id=user.id,
+            showtime_id=showtime_id,
+            row=row,
+            col=col,
+            booking_price=5,
+        )
+        
+        db.session.add(new_booking)
+        db.session.commit()
+
+        new_bookings.append(new_booking)
+
+    cart = db.session.execute(db.select(Cart).where(Cart.user_id == user.id)).scalar()
+    if not cart:
+        cart = Cart(user_id=user.id)
+        db.session.add(cart)
+        db.session.commit()
+
+    for booking in new_bookings:
+        new_cart_item = CartItem(
+            cart_id=cart.id,
+            booking_id=booking.id
+        )
+        db.session.add(new_cart_item)
+
+    db.session.commit()
+
+    response_body['message'] = 'Bookings added to cart'
+    response_body['bookings'] = [b.user_bookings() for b in new_bookings]
+    
+    return jsonify(response_body), 200
+
+
+@api.route('/cart', methods=['GET'])
+@jwt_required()
+def view_cart():
+    response_body = {}
+    current_user_email = get_jwt_identity()
+    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
+
+    cart = db.session.execute(db.select(Cart).where(Cart.user_id == user.id)).scalar()
+    if not cart:
+        response_body['message'] = "Cart is empty"
+        return response_body, 200
+
+    items = db.session.execute(db.select(CartItem).where(CartItem.cart_id == cart.id)).scalars().all()
+
+    cart_details = [item.serialize() for item in items]
+
+    total = sum(item["subtotal"] for item in cart_details)
+
+    response_body['cart'] = cart_details
+    response_body['total'] = total
+
+    return response_body, 200
+
+
+@api.route('/cart/clear', methods=['DELETE'])
+@jwt_required()
+def clear_cart():
+    current_user_email = get_jwt_identity()
+    
+    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
+
+    if not user:
+        return {"message": "User not found"}, 404
+    
+    cart = db.session.execute(db.select(Cart).where(Cart.user_id == user.id)).scalar()
+
+    if not cart:
+        return {"message": "Cart not found"}, 404
+
+    db.session.execute(db.delete(CartItem).where(CartItem.cart_id == cart.id))
+    
+    db.session.delete(cart)
+    db.session.commit()
+
+    return {"message": "Cart cleared successfully"}, 200
+
+
 @api.route('/store-cinema', methods=['GET', 'POST'])
 @jwt_required()
 def store_cinema():
@@ -119,108 +276,66 @@ def store_cinema():
     
     if request.method == 'POST':
         data = request.json
-        selected_products = data.get('products', [])
-        booking_id = data.get('booking_id')
+        booking_id = data.get('booking_id')  # Esto sí sigue viniendo del body
 
-        bookings = db.session.execute(db.select(Bookings).where(Bookings.id == booking_id, Bookings.user_id == user.id)).scalar()
-        
-        total = sum([db.session.execute(db.select(Products.base_price)
-                                        .where(Products.id == product.get('id')))
-                                        .scalar() * product.get('quantity') 
-                                        for product in selected_products])
+        # Obtener usuario
+        current_user_email = get_jwt_identity()
+        user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
 
-        if not bookings or bookings.showtime_to.date_time < datetime.utcnow(): 
-            response_body['message'] = "The reservation does not exist or has expired"
-            return response_body, 400
+        # Obtener la reserva
+        bookings = db.session.execute(db.select(Bookings).where(
+            Bookings.id == booking_id, 
+            Bookings.user_id == user.id)
+        ).scalar()
+
+        if not bookings or bookings.showtime_to.date_time < datetime.utcnow():
+            return {"message": "The reservation does not exist or has expired"}, 400
+
+        # Obtener carrito
+        cart = db.session.execute(db.select(Cart).where(Cart.user_id == user.id)).scalar()
+
+        if not cart or not cart.items:
+            return {"message": "Your cart is empty"}, 400
+
+        # Calcular total
+        total = sum(item.quantity * item.product_to_cart.base_price for item in cart.items)
 
         if user.wallet < total:
             return {"message": "You don't have enough money in your wallet"}, 400
 
         user.wallet -= total
 
+        # Crear venta
         new_sale = Sales(user_id=user.id, total=total)
         db.session.add(new_sale)
 
         products_detail = []
 
-        for product in selected_products:
-            product_selected = db.session.execute(db.select(Products).where(Products.id == product.get('id'))).scalar()
-            if product_selected:
-                new_sale_line = SalesLines(
-                    product_id=product_selected.id,
-                    quantity=product.get('quantity'),
-                    unit_price=product_selected.base_price,
-                    sale_id=new_sale.id
-                )
-                db.session.add(new_sale_line)
+        # Crear líneas de venta desde el carrito
+        for item in cart.items:
+            new_sale_line = SalesLines(
+                product_id=item.product_to_cart.id,
+                quantity=item.quantity,
+                unit_price=item.product_to_cart.base_price,
+                sale=new_sale
+            )
+            db.session.add(new_sale_line)
 
-                products_detail.append({
-                    'name': product_selected.name,
-                    'quantity': product.get('quantity'),
-                    'unit_price': product_selected.base_price,
-                })
+            products_detail.append(item.serialize())
 
-        bookings.sales.append(new_sale)  
-        
+        # Asignar la venta a la reserva
+        bookings.sales.append(new_sale)
+
+        # Vaciar el carrito
+        for item in cart.items:
+            db.session.delete(item)
+
         db.session.commit()
 
-        response_body = {
-            "message": "Your purchase is done! Here's your resume: ",
+        return {
+            "message": "Your purchase is done! Here's your resume:",
             "results": products_detail
-        }
-        return response_body, 201
-
-    
-@api.route('/book-ticket', methods=['POST'])
-@jwt_required()
-def book_ticket():
-    response_body = {}
-    current_user_email = get_jwt_identity()
-    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
-    if not user:
-        return jsonify({'message': "User not found"}), 400
-    
-    data = request.json
-    print('book-ticket data:', data)
-    showtime_id = data.get('showtime_id')
-    seats_booked = data.get('seats_booked', [])
-
-    if showtime_id is None or not seats_booked:
-        return jsonify({'message': 'Missing required fields'}), 400
-
-    showtime = db.session.execute(db.select(ShowTimes).where(ShowTimes.id == showtime_id)).scalar()
-    if not showtime:
-        return jsonify({'message': 'Showtime not found'}), 404
-    
-    cinema_room = showtime.cinema_room_to
-    
-    for seat in seats_booked:
-        row = seat.get('row')
-        col = seat.get('col')
-        if {"row": row, "col": col} in showtime.get_reserved_seats():
-            return jsonify({'message': 'The seat is already reserved'}), 400
-        if row < 1 or row > cinema_room.cinema_row or col < 1 or col > cinema_room.cinema_col:
-            return jsonify({'message': 'Invalid seat selection'}), 400
-        
-        showtime.reserve_seat(row, col)
-        showtime.available -= 1
-        
-        # Crear la reserva
-        new_booking = Bookings(
-            user_id=user.id,
-            showtime_id=showtime_id,
-            row=row,
-            col=col,
-            booking_price=5,
-        )
-        
-        db.session.add(new_booking)
-    
-    db.session.commit()
-    response_body['message'] = 'Booking successful'
-    response_body['booking'] = new_booking.user_bookings()
-    
-    return jsonify(response_body), 200
+        }, 201
 
 
 @api.route('/showtime/<int:showtime_id>/seats', methods=['GET'])
@@ -234,9 +349,11 @@ def get_showtime_seats(showtime_id):
 
     return response_body, 200
 
-@api.route('/products', methods=['GET', 'POST'])
-# @jwt_required()
+
+@api.route('/products', methods=['GET'])
+@jwt_required()
 def products():
+    create_cinema_menus()
     response_body = {}
     if request.method == 'GET':
         results = db.session.execute(db.select(Products)).scalars()
@@ -279,7 +396,7 @@ def showtime_details(movie_id):
 
     response_body['showtime'] = [showtime.serialize() for showtime in showtimes]
     return jsonify(response_body), 200
-    
+
 
 def import_movies():
     url = f'{os.getenv("URL_TMDB")}/now_playing'
@@ -319,6 +436,28 @@ def import_movies():
                 release_date=release_date,
                 genre=genre)
             db.session.add(new_movie)
+
+    db.session.commit()
+
+
+def create_cinema_menus():
+
+    combos = [
+        Products(name="Classic Combo", base_price=9.99,
+                 description="Includes one medium popcorn and a soft drink"),
+        Products(name="Sweet Tooth Combo", base_price=7.99,
+                 description="Includes a bag of candy and a small popcorn"),
+        Products(name="Family Combo", base_price=19.99,
+                 description="Includes one large popcorn, two soft drinks, and one candy")
+    ]
+
+    for combo in combos:
+        exists = db.session.execute(
+            db.select(Products).where(Products.name == combo.name)
+        ).scalar()
+
+        if not exists:
+            db.session.add(combo)
 
     db.session.commit()
 

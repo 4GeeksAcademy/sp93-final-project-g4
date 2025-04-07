@@ -11,6 +11,8 @@ const getState = ({ getStore, getActions, setStore }) => {
 			movieList: [],
 			movieDetails: {},
 			showtimeId: {},
+			productList: [],
+			showCart: [],
 			showtimeMovie: [],
 			alert: {text: '', visible: false, background: 'primary'},
 		},
@@ -179,6 +181,68 @@ const getState = ({ getStore, getActions, setStore }) => {
 				console.log(data)
 				setStore({showtimeId: {...data.details, id: data.details.id}})
 			},
+			getProducts: async () => {
+				const token = localStorage.getItem('token')
+				const response = await fetch(`${process.env.BACKEND_URL}/api/products`, 
+					{
+						method: 'GET',
+						headers: {
+							"Authorization" : `Bearer ${token}`
+						},
+					})
+										
+					if (!response.ok) {
+						console.log('Error', response.status, response.statusText);
+						return;
+					}
+
+					const data = await response.json()			
+					setStore({ productList: data.results })
+			}, 
+			addCart: async (product) => {
+				const token = localStorage.getItem('token')
+				const response = await fetch(`${process.env.BACKEND_URL}/api/cart/add`, 
+					{
+						method: 'POST',
+						headers: {
+							"Content-Type" : "Application/json",
+							"Authorization" : `Bearer ${token}`
+						},
+						body: JSON.stringify(product)
+					})
+
+				if (!response.ok){
+					console.log('Error', response.status, response.statusText);
+					return;
+				}
+
+				const data = await response.json()
+				
+				setStore({ alert: { visible: true, text: `${data.message}`, background: "success" } })
+				setTimeout(() => {
+					setStore({ alert: { visible: false, text: "", background: "" } });
+				}, 2000);
+				getActions().viewCart()
+				
+			},
+			viewCart: async () => {
+				const token = localStorage.getItem('token')
+				const response = await fetch(`${process.env.BACKEND_URL}/api/cart`,
+					{
+						method: 'GET',
+						headers: {
+							"Authorization" : `Bearer ${token}`
+						}
+					})
+				
+				if (!response.ok) {
+					console.log('Error', response.status, response.statusText);
+					return;
+				}
+
+				const data = await response.json()
+				setStore({ showCart: data})
+			},
 			reserveBookings: async (idSesion, reserve) => {
 				const response = await fetch(`${process.env.BACKEND_URL}/api/book-ticket`,
 					{
@@ -187,10 +251,19 @@ const getState = ({ getStore, getActions, setStore }) => {
 							"Content-Type" : "Application/json",
 							"Authorization" : `Bearer ${token}`
 						},
+
 						body : JSON.stringify(idSesion, reserve)
-					}
-				)
-			},
+					})
+				
+				if(!response.ok) {
+					console.log("Error", response.status, response.statusText);
+					return;
+				}
+
+				const data = await response.json()
+				console.log(data);
+				
+			}
 		}
 	};
 };
