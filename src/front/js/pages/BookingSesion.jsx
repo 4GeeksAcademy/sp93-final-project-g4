@@ -76,6 +76,8 @@ export const BookingSesion = () => {
           </div>
         ))}
       </div>
+ 
+      <button className="btn btn-danger" onClick={() => console.log(selectedSeat)}>Buy bookings</button>
 
       {selectedSeat.length > 0 && (
         <div className="mt-3">

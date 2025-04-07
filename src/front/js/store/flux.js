@@ -179,6 +179,18 @@ const getState = ({ getStore, getActions, setStore }) => {
 				console.log(data)
 				setStore({showtimeId: {...data.details, id: data.details.id}})
 			},
+			reserveBookings: async (idSesion, reserve) => {
+				const response = await fetch(`${process.env.BACKEND_URL}/api/book-ticket`,
+					{
+						method: 'POST',
+						headers: {
+							"Content-Type" : "Application/json",
+							"Authorization" : `Bearer ${token}`
+						},
+						body : JSON.stringify(idSesion, reserve)
+					}
+				)
+			},
 		}
 	};
 };
