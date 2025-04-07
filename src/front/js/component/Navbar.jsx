@@ -16,13 +16,13 @@ export const Navbar = () => {
 	const [show, setShow] = useState(false);
 	const handleClose = () => setShow(false);
 	const handleShow = () => setShow(true);
-	
+
 	const [username, setName] = useState("")
 	const [email, setEmail] = useState("")
-	
+
 	const handleEditSubmit = () => {
 		event.preventDefault();
-		const updateProfile= {
+		const updateProfile = {
 			email,
 			username
 		}
@@ -38,7 +38,11 @@ export const Navbar = () => {
 	return (
 		<nav className="navbar navbar-expand-lg bg-dark" data-bs-theme="dark">
 			<div className="container-fluid">
-				<Link className="navbar-brand" to="/">Navbar</Link>
+				<Link to="/">
+					<span className="">
+					<a href='https://postimages.org/' target='_blank'><img src='https://i.postimg.cc/mr9PQzBj/CINEMA-CENTER-logo-Final-removebg-preview.png' border='0' height="75"/></a>
+					</span>
+				</Link>
 				<button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarColor02" aria-controls="navbarColor02" aria-expanded="false" aria-label="Toggle navigation">
 					<span className="navbar-toggler-icon"></span>
 				</button>
@@ -106,11 +110,11 @@ export const Navbar = () => {
 					</Modal.Header>
 					<Modal.Body>
 						<Form.Floating onSubmit={handleEditSubmit} className="mb-3">
-							<Form.Control onChange={(e) => {setName(e.target.value)}} id="floatingInputCustom" type="text" placeholder="your Name here" value={username} />
+							<Form.Control onChange={(e) => { setName(e.target.value) }} id="floatingInputCustom" type="text" placeholder="your Name here" value={username} />
 							<label htmlFor="floatingInputCustom">Your name here</label>
 						</Form.Floating>
 						<Form.Floating className="mb-3">
-							<Form.Control onChange={(e) => {setEmail(e.target.value)}} id="floatingInputCustom" type="email" placeholder="name@example.com" value={email} />
+							<Form.Control onChange={(e) => { setEmail(e.target.value) }} id="floatingInputCustom" type="email" placeholder="name@example.com" value={email} />
 							<label htmlFor="floatingInputCustom">Your email here</label>
 						</Form.Floating>
 					</Modal.Body>
