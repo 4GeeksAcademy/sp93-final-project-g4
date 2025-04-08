@@ -116,17 +116,20 @@ const getState = ({ getStore, getActions, setStore }) => {
 				localStorage.setItem('user', JSON.stringify(data.results))
 			},
 			editProfile: async (userUpdate) =>{
-				const uri = `${process.env.BACKEND_URL}/api/user-detail`;
+				const uri = `${process.env.BACKEND_URL}/api/users/${userUpdate.id}`;
 				const token = localStorage.getItem('token');
 				const options ={
 					method: 'PUT',
 					headers: {
-						"Content-Type" : "Application/json",
-						"Authorization" : `Bearer ${token}`
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${token}`
 					},
-					body : JSON.stringify(userUpdate)
+					body: JSON.stringify(userUpdate)
 				};
+				console.log(userUpdate, typeof(userUpdate))
+				console.log(options)
 				const response = await fetch(uri, options)
+				console.log(response)
 				if (!response.ok){
 					console.error("Error update: ", response.status, response.statusText)
 					return
