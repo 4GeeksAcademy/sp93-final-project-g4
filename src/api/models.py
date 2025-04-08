@@ -101,7 +101,8 @@ class ShowTimes(db.Model):
 
     def serialize(self):
         return{ 'id': self.id,
-                'date_time': self.date_time.strftime("%d/%m/%Y %H:%M"),
+                'date_time_hour': self.date_time.strftime("%H:%M"),
+                'date_time_day': self.date_time.strftime("%d/%m"),
                 'movie_id': self.movie_id,
                 'cinema_room': self.cinema_room_to.name,
                 'available_seats': self.available,
@@ -184,7 +185,7 @@ class Products(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(), nullable=False)
     base_price = db.Column(db.Float, nullable=False)
-    category = db.Column(db.Enum("Bebida", "Comida", "Merch", "Cinema Ticket", name = "category"), nullable=False)
+    description = db.Column(db.String(), nullable=False)
 
     def __repr__(self):
         return f'<Product: {self.name}'
@@ -193,4 +194,49 @@ class Products(db.Model):
         return{ 'id': self.id,
                 'name': self.name,
                 'base_price': self.base_price,
-                'category': self.category,}
+                'description': self.description}
+
+
+class Cart(db.Model):
+    __tablename__ = 'carts'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True)
+    user_to = db.relationship('Users', backref='cart')
+    items = db.relationship('CartItem', backref='cart', lazy='select')
+
+    def __repr__(self):
+        return f'<Cart: Cart user{self.user_to.username}'
+
+
+class CartItem(db.Model):
+    __tablename__ = 'cart_items'
+    id = db.Column(db.Integer, primary_key=True)
+    cart_id = db.Column(db.Integer, db.ForeignKey('carts.id'))
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'))
+    booking_id = db.Column(db.Integer, db.ForeignKey('bookings.id'))
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+    product_to_cart = db.relationship('Products', backref="cart_items", lazy="select")
+    booking_to_cart = db.relationship('Bookings', backref="cart_items", lazy="select")
+
+    def __repr__(self):
+        return f'<Cart Item: {self.id}'
+    
+    def serialize(self):
+        if self.product_id:
+            return {
+                "type": "Product",
+                "product_id": self.product_id,
+                "name": self.product_to_cart.name,
+                "quantity": self.quantity,
+                "unit_price": self.product_to_cart.base_price,
+                "subtotal": self.quantity * self.product_to_cart.base_price
+            }
+        elif self.booking_id:
+            return {
+                "type": "Booking",
+                "booking_price": self.booking_to_cart.booking_price,
+                "movie_title": self.booking_to_cart.showtime_to.movie_to.title,
+                "showtime_date":self.booking_to_cart.showtime_to.date_time.strftime("%d/%m/%Y %H:%M"),
+                "cinema_room_name": self.booking_to_cart.showtime_to.cinema_room_to.name,
+                "subtotal": self.booking_to_cart.booking_price
+            }

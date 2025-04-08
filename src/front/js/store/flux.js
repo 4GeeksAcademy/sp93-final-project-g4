@@ -10,9 +10,24 @@ const getState = ({ getStore, getActions, setStore }) => {
 			user: {},
 			movieList: [],
 			movieDetails: {},
+			productList: [],
+			showCart: [],
+			showtimeMovie: [],
 			alert: {text: '', visible: false, background: 'primary'},
 		},
 		actions: {
+			getShowtimes: async (movieId) => {
+				const response = await fetch(`${process.env.BACKEND_URL}/api/showtime/${movieId}/details`)
+				{
+					method: 'GET'
+				}
+			if (!response.ok) {
+				console.log("Error getShowtimes: ", response.status, response.statusText)
+				return;
+			}
+			const data = await response.json()
+			setStore({showtimeMovie: data.showtime})
+			},
 			getMovieDetails: async (movieId) => {
 				const response = await fetch(`${process.env.BACKEND_URL}/api/movies/${movieId}`,
 					{
@@ -23,7 +38,7 @@ const getState = ({ getStore, getActions, setStore }) => {
 					return;
 				}
 				const data = await response.json()
-				setStore({movieDetails: {...data.result, id: data.result.id}})
+				setStore({movieDetails: {...data.result, movieId}})
 			},
 			register: async (newUser) => {
 				const response = await fetch(`${process.env.BACKEND_URL}/api/register`, 
@@ -148,6 +163,68 @@ const getState = ({ getStore, getActions, setStore }) => {
 
 				const data = await response.json()
 				setStore({ movieList: data.results})
+			},
+			getProducts: async () => {
+				const token = localStorage.getItem('token')
+				const response = await fetch(`${process.env.BACKEND_URL}/api/products`, 
+					{
+						method: 'GET',
+						headers: {
+							"Authorization" : `Bearer ${token}`
+						},
+					})
+										
+					if (!response.ok) {
+						console.log('Error', response.status, response.statusText);
+						return;
+					}
+
+					const data = await response.json()			
+					setStore({ productList: data.results })
+			}, 
+			addCart: async (product) => {
+				const token = localStorage.getItem('token')
+				const response = await fetch(`${process.env.BACKEND_URL}/api/cart/add`, 
+					{
+						method: 'POST',
+						headers: {
+							"Content-Type" : "Application/json",
+							"Authorization" : `Bearer ${token}`
+						},
+						body: JSON.stringify(product)
+					})
+
+				if (!response.ok){
+					console.log('Error', response.status, response.statusText);
+					return;
+				}
+
+				const data = await response.json()
+				
+				setStore({ alert: { visible: true, text: `${data.message}`, background: "success" } })
+				setTimeout(() => {
+					setStore({ alert: { visible: false, text: "", background: "" } });
+				}, 2000);
+				getActions().viewCart()
+				
+			},
+			viewCart: async () => {
+				const token = localStorage.getItem('token')
+				const response = await fetch(`${process.env.BACKEND_URL}/api/cart`,
+					{
+						method: 'GET',
+						headers: {
+							"Authorization" : `Bearer ${token}`
+						}
+					})
+				
+				if (!response.ok) {
+					console.log('Error', response.status, response.statusText);
+					return;
+				}
+
+				const data = await response.json()
+				setStore({ showCart: data})
 			},
 		}
 	};
