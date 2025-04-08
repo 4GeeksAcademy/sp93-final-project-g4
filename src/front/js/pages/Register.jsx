@@ -21,91 +21,75 @@ export const Register = () => {
             return
         }
 
-        const newUser = { name, email, password };
+        const newUser = { username: name, email, password };
 
         actions.register(newUser)
-        // .then(() => {
-        //     navigate("/home")
-        // })
-        // .catch(error => {
-        //     console.error("error registering: ", error)
-        // });
         navigate("/")
     }
 
 
     return (
-        <div>
-            <div className="d-flex aling-items-center justify-content-center mt-3">
-                <form className=" shadow-lg rounded-4" onSubmit={handleRegister} style={{zIndex: 2}}>
-                    <h2 className="text-center mb-4">Create your account</h2>
+        <div className="register-container d-flex align-items-center justify-content-center vh-100">
+            <form className="shadow-lg rounded-4 p-4" onSubmit={handleRegister} style={{ width: "350px" }}>
+                <h2 className="text-center mb-4">Create your account</h2>
 
-                    <div className="mb-3">
-                        <label htmlFor="name" className="form-label">Full name</label>
-                        <input
-                            type="text"
-                            id="name"
-                            className="form-control"
-                            placeholder="name"
-                            value={name} onChange={(e) => setName(e.target.value)}
-                            required
-                        ></input>
-                    </div>
+                <div className="mb-3">
+                    <label htmlFor="name" className="form-label">Full name</label>
+                    <input
+                        type="text"
+                        id="name"
+                        className="form-control"
+                        placeholder="Name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                    />
+                </div>
 
-                    <div className="mb-3">
-                        <label htmlFor="email" className="form-label">Email address</label>
-                        <input
-                            type="email"
-                            id="email"
-                            className="form-control"
-                            placeholder="name@gmail.com"
-                            value={email} onChange={(e) => setEmail(e.target.value)}
-                            required
-                        ></input>
-                    </div>
+                <div className="mb-3">
+                    <label htmlFor="email" className="form-label">Email address</label>
+                    <input
+                        type="email"
+                        id="email"
+                        className="form-control"
+                        placeholder="name@gmail.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                    />
+                </div>
 
-                    <div className="mb-3">
-                        <label htmlFor="password" className="form-label">Password</label>
-                        <input
-                            type="password"
-                            id="password"
-                            className="form-control"
-                            placeholder="••••••••"
-                            value={password} onChange={(e) => setPassword(e.target.value)}
-                            required
-                        ></input>
-                    </div>
+                <div className="mb-3">
+                    <label htmlFor="password" className="form-label">Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        className="form-control"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                    />
+                </div>
 
-                    <div className="mb-3">
-                        <label htmlFor="confirmPassword" className="form-label">Confirm Password</label>
-                        <input
-                            type="password"
-                            id="confirmPassword"
-                            className="form-control"
-                            placeholder="••••••••"
-                            value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-                            required
-                        ></input>
-                    </div>
+                <div className="mb-3">
+                    <label htmlFor="confirmPassword" className="form-label">Confirm Password</label>
+                    <input
+                        type="password"
+                        id="confirmPassword"
+                        className="form-control"
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                    />
+                </div>
 
-                    <button type="submit" className="btn btn-primary w-100">Register</button>
-                    <span className="">Already have an account? <a href="/login" className="text-info">Login</a></span>
-                </form>
-                <Carousel className="register-carousel" fade style={{ height: '100vh' }}>
-                    {
-                        store.movieList.map((movie) => (
-                            <Carousel.Item key={movie.id} interval={2800}>
-                                <img
-                                    src={`https://media.themoviedb.org/t/p/w1066_and_h600_bestv2${movie.backdrop_path}`}
-                                    className="register-carousel"
-                                    alt={movie.title} // Usando el título de la película como texto alternativo
-                                    
-                                />
-                            </Carousel.Item>
-                        ))
-                    }
-                </Carousel>
-            </div>
+                <button type="submit" className="btn btn-primary w-100">Register</button>
+                <div className="mt-2 text-center">
+                    <span>Already have an account? <a href="/login" className="text-info">Login</a></span>
+                </div>
+            </form>
         </div>
     )
 }
