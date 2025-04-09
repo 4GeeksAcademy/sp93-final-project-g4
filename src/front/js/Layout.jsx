@@ -13,7 +13,11 @@ import { Login } from "./pages/Login.jsx";
 import { Register } from "./pages/Register.jsx";
 import { Alert } from "./component/Alert.jsx";
 import { MoviesDetails } from "./pages/MoviesDetails.jsx";
+
+
 import { Shop } from "./pages/Shop.jsx";
+
+import { ShoppingCart } from "./pages/ShoppingCart.jsx";
 
 
 //Create your first component
@@ -34,6 +38,7 @@ const Layout = () => {
                         <Route element={<Login />} path="/login" />
                         <Route element={<Register />} path="/register" />
                         <Route element={<MoviesDetails />} path="/movies-details/:movieId" />
+                        <Route element={<ShoppingCart />} path="/shopping-cart" />
                         <Route element={<Shop />} path="/snack-bar" />
                         <Route element={<Error404/>} path='*'/>
                     </Routes>

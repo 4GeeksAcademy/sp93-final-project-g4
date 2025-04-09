@@ -206,7 +206,7 @@ def book_ticket():
     return jsonify(response_body), 200
 
 
-@api.route('/cart', methods=['GET'])
+""" @api.route('/cart', methods=['GET'])
 @jwt_required()
 def view_cart():
     response_body = {}
@@ -227,7 +227,7 @@ def view_cart():
     response_body['cart'] = cart_details
     response_body['total'] = total
 
-    return response_body, 200
+    return response_body, 200 """
 
 
 @api.route('/cart/clear', methods=['DELETE'])
@@ -251,6 +251,38 @@ def clear_cart():
     db.session.commit()
 
     return {"message": "Cart cleared successfully"}, 200
+
+
+@api.route('/cart', methods=['GET'])
+@jwt_required()
+def view_cart():
+    response_body = {}
+    current_user_email = get_jwt_identity()
+    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
+
+    cart = db.session.execute(db.select(Cart).where(Cart.user_id == user.id)).scalar()
+    if not cart:
+        response_body['message'] = "Cart is empty"
+        return response_body, 200
+
+    items = db.session.execute(db.select(CartItem).where(CartItem.cart_id == cart.id)).scalars().all()
+
+    products = []
+    bookings = []
+    total = 0
+
+    for item in items:
+        if item.serialize()["type"] == "Product":
+            products.append(item.serialize())
+        elif item.serialize()["type"] == "Booking":
+            bookings.append(item.serialize())
+        total += item.serialize()["subtotal"]
+
+    response_body['products'] = products
+    response_body['bookings'] = bookings
+    response_body['total'] = total
+
+    return response_body, 200
 
 
 @api.route('/store-cinema', methods=['GET', 'POST'])
