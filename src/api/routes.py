@@ -257,8 +257,6 @@ def get_showtime_seats(showtime_id):
 
 @api.route('/products', methods=['GET'])
 @jwt_required()
-
-@api.route('/products', methods=['GET', 'POST'])
 def products():
     create_cinema_menus()
     response_body = {}
@@ -307,7 +305,6 @@ def showtime_details(movie_id):
 
     response_body['showtime'] = [showtime.serialize() for showtime in showtimes]
     return jsonify(response_body), 200
-
 
 
 @api.route('/create-payment', methods=['POST'])
