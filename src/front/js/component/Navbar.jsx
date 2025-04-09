@@ -16,13 +16,12 @@ export const Navbar = () => {
 	const [show, setShow] = useState(false);
 	const handleClose = () => setShow(false);
 	const handleShow = () => setShow(true);
-
 	const [username, setName] = useState("")
 	const [email, setEmail] = useState("")
 
 	const handleEditSubmit = () => {
 		event.preventDefault();
-		const updateProfile= {
+		const updateProfile = {
 			id: store.user.id,
 			email,
 			username
@@ -30,11 +29,14 @@ export const Navbar = () => {
 		actions.editProfile(updateProfile)
 		setShow(false)
 	}
-	
 
 	const handleLogOut = () => {
 		actions.logout();
 		navigate("/login")
+	}
+
+	const handleCart = () => {
+		navigate("/shopping-cart")
 	}
 
 	return (
@@ -42,13 +44,13 @@ export const Navbar = () => {
 			<div className="container-fluid">
 				<Link to="/">
 					<span className="">
-					<a href='https://postimages.org/' target='_blank'><img src='https://i.postimg.cc/mr9PQzBj/CINEMA-CENTER-logo-Final-removebg-preview.png' border='0' height="75"/></a>
+						<a href='https://postimages.org/' target='_blank'><img src='https://i.postimg.cc/mr9PQzBj/CINEMA-CENTER-logo-Final-removebg-preview.png' border='0' height="75" /></a>
 					</span>
 				</Link>
 				<button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarColor02" aria-controls="navbarColor02" aria-expanded="false" aria-label="Toggle navigation">
 					<span className="navbar-toggler-icon"></span>
 				</button>
-				{/*<ul className="navbar-nav me-auto">
+				{/* <ul className="navbar-nav me-auto">
 					<li className="nav-item">
 						<Link className="nav-link active" to="#">Home
 							<span className="visually-hidden">(current)</span>
@@ -73,31 +75,48 @@ export const Navbar = () => {
 							<Link className="dropdown-item" to="#">Separated link</Link>
 						</div>
 					</li>
-				</ul>*/}
+				</ul> */}
 				<div>
 					{store.isLogged ? (
-						<Dropdown >
-							<Dropdown.Toggle className="btn-dark border-0" id="dropdown-basic">
-								<i className="fa-regular fa-address-card"></i>
-							</Dropdown.Toggle>
-							<Dropdown.Menu>
-								<div>
-									<span>	Username: {user.username} </span>
-								</div>
-								<div>
-									<span>	Email: {user.email} </span>
-								</div>
-								<div>
-									<span>	Wallet: {user.wallet} </span>
-								</div>
-								<div>
-									<span>	Points: {user.points} </span>
-								</div>
-								<Dropdown.Divider />
-								<Dropdown.Item onClick={handleShow} className="text-black"> Edit Profile </Dropdown.Item>
-								<Dropdown.Item onClick={handleLogOut} className="text-danger"> Logout </Dropdown.Item>
-							</Dropdown.Menu>
-						</Dropdown>
+						<div className="d-flex">
+							<Dropdown >
+								<Dropdown.Toggle className="btn-dark border-0 me-1" id="dropdown-basic">
+									<i className="fa-regular fa-address-card"></i>
+								</Dropdown.Toggle>
+								<Dropdown.Menu>
+									<div>
+										<span className="p-2">	Username: {user.username} </span>
+									</div>
+									<div>
+										<span className="p-2">	Email: 
+											<span>
+												{user.email}
+											</span>
+										</span>
+									</div>
+									<div>
+										<span className="p-2">	Points: {user.points} </span>
+									</div>
+									<Dropdown.Divider />
+									<Dropdown.Item onClick={handleShow} className="text-black p-2"> Edit Profile </Dropdown.Item>
+									<Dropdown.Item onClick={handleLogOut} className="text-danger p-2"> Logout </Dropdown.Item>
+								</Dropdown.Menu>
+							</Dropdown>
+							<Dropdown >
+								<Dropdown.Toggle className="btn-dark border-0" id="dropdown-basic">
+									<i className="fa-solid fa-cart-shopping"></i>
+								</Dropdown.Toggle>
+								<Dropdown.Menu>
+									<div>
+										<span>	Username: {user.username} </span>
+									</div>
+
+									<Dropdown.Divider />
+									{/* <Dropdown.Item onClick={handleShow} className="text-black"> Edit Profile </Dropdown.Item> */}
+									<Dropdown.Item onClick={handleCart} className="text-succes"> GO! </Dropdown.Item>
+								</Dropdown.Menu>
+							</Dropdown>
+						</div>
 					) : (
 						<svg className="me-4" xmlns="http://www.w3.org/2000/svg" height="20" width="20" viewBox="0 0 512 512" style={{ cursor: "pointer" }} onClick={() => navigate("/login")}>
 							<path fill="#7a7a7a" d="M352 96l64 0c17.7 0 32 14.3 32 32l0 256c0 17.7-14.3 32-32 32l-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0c53 0 96-43 96-96l0-256c0-53-43-96-96-96l-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32zm-9.4 182.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L242.7 224 32 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l210.7 0-73.4 73.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l128-128z" />
