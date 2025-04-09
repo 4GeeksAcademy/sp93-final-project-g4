@@ -1,10 +1,12 @@
 import React, { useContext, useState } from "react";
 import "../../styles/movies-details.css";
 import { Context } from "../store/appContext.js";
+import { useNavigate } from "react-router-dom";
 
 
 export const MoviesDetails = () => {
-
+    
+    const navigate = useNavigate()
     const { store, actions } = useContext(Context);
     const [ selectedDay, setSelectedDay ] = useState(null);
 
@@ -20,10 +22,15 @@ export const MoviesDetails = () => {
         setSelectedDay(allDays[0]);
     }
 
+    const handleClickShowtime = (showtimeId) => {
+        actions.getShowtimeSeats(showtimeId); 
+        navigate(`/booking-sesion/${showtimeId}`); 
+    };
+
     return (
         <div style={{background: "linear-gradient(150deg, rgba(0, 0, 0, 1) 0%, rgba(31, 1, 56, 1) 68%, rgba(61, 3, 56, 1) 100%)"}}>
             <div className="billboard mb-3">
-                <img src={`https://image.tmdb.org/t/p/original${store.movieDetails.backdrop_path}`} alt={store.movieDetails.title}></img>
+                <img src={`https://image.tmdb.org/t/p/original${store.movieDetails.backdrop_path}`} alt={store.movieDetails.title} />
             </div>
             <div style={{ marginLeft: "1%" }}>
                 <div className="d-flex flex-wrap mb-4" style={{ marginLeft: "10%", marginRight: "10%", backgroundColor: "black" }}>
@@ -102,9 +109,11 @@ export const MoviesDetails = () => {
                                     </div>
                                     {horarios.length > 0 ? (
                                         horarios.map((hora) => (
-                                            <div key={hora.id} className="mx-3 btn btn-outline-secondary" style={{ color: "white", border: "2px solid white", padding: "5px 20px", borderRadius: "20px" }}>
+                                            <button key={hora.id} className="mx-3 btn btn-outline-secondary"
+                                             style={{ color: "white", border: "2px solid white", padding: "5px 20px", borderRadius: "20px" }} 
+                                             onClick={() => handleClickShowtime(hora.id)}>
                                                 {hora.date_time_hour}
-                                            </div>
+                                            </button>
                                         ))
                                     ) : (
                                         <div></div>

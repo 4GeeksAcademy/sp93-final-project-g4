@@ -11,7 +11,7 @@ from flask_jwt_extended import create_access_token
 from flask_jwt_extended import jwt_required
 from flask_jwt_extended import get_jwt_identity
 from flask_jwt_extended import get_jwt
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 api = Blueprint('api', __name__)
@@ -106,6 +106,14 @@ def add_to_cart():
 
     if not product_id:
         return {"message": "Product ID is required"}, 400
+    
+    product = db.session.execute(
+        db.select(Products).where(Products.id == product_id)
+    ).scalar()
+
+    if not product:
+        return {"message": "Product not found"}, 404
+
 
     current_user_email = get_jwt_identity()
     user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
@@ -115,7 +123,7 @@ def add_to_cart():
     if not cart:
         cart = Cart(user_id=user.id)
         db.session.add(cart)
-        db.session.commit()
+        db.session.commit()        
 
     # Verificar si el producto ya está en el carrito
     cart_item = db.session.execute(
@@ -179,7 +187,6 @@ def book_ticket():
             col=col,
             booking_price=5,
         )
-        
         db.session.add(new_booking)
         db.session.commit()
 
@@ -196,13 +203,11 @@ def book_ticket():
             cart_id=cart.id,
             booking_id=booking.id
         )
+        print('este es el print',booking.id)
         db.session.add(new_cart_item)
+        db.session.commit()
 
-    db.session.commit()
-
-    response_body['message'] = 'Bookings added to cart'
-    response_body['bookings'] = [b.user_bookings() for b in new_bookings]
-    
+    response_body['message'] = 'Bookings added to cart'    
     return jsonify(response_body), 200
 
 
@@ -218,13 +223,22 @@ def view_cart():
         response_body['message'] = "Cart is empty"
         return response_body, 200
 
+
     items = db.session.execute(db.select(CartItem).where(CartItem.cart_id == cart.id)).scalars().all()
 
-    cart_details = [item.serialize() for item in items]
+    products = []
+    bookings = []
+    total = 0
 
-    total = sum(item["subtotal"] for item in cart_details)
+    for item in items:
+        if item.serialize()["type"] == "Product":
+            products.append(item.serialize())
+        elif item.serialize()["type"] == "Booking":
+            bookings.append(item.serialize())
+        total += item.serialize()["subtotal"]
 
-    response_body['cart'] = cart_details
+    response_body['products'] = products
+    response_body['bookings'] = bookings
     response_body['total'] = total
 
     return response_body, 200 """
@@ -244,6 +258,16 @@ def clear_cart():
 
     if not cart:
         return {"message": "Cart not found"}, 404
+    
+    for item in cart.items:
+        if item.booking_id:
+            booking = item.booking_to_cart
+            if booking and not booking.sales:
+                showtime = booking.showtime_to
+                showtime.unreserve_seat(booking.row, booking.col)
+                db.session.delete(booking)
+        db.session.delete(item)
+
 
     db.session.execute(db.delete(CartItem).where(CartItem.cart_id == cart.id))
     
@@ -309,7 +333,7 @@ def store_cinema():
     
     if request.method == 'POST':
         data = request.json
-        booking_id = data.get('booking_id')  # Esto sí sigue viniendo del body
+        booking_id = data.get('booking_id')
 
         # Obtener usuario
         current_user_email = get_jwt_identity()
@@ -326,35 +350,50 @@ def store_cinema():
 
         # Obtener carrito
         cart = db.session.execute(db.select(Cart).where(Cart.user_id == user.id)).scalar()
+        if cart and cart.items:
+            for item in cart.items:
+                print(item.product_to_cart)
 
         if not cart or not cart.items:
             return {"message": "Your cart is empty"}, 400
 
-        # Calcular total
-        total = sum(item.quantity * item.product_to_cart.base_price for item in cart.items)
+        total = 0
+        products_detail = []
 
-        if user.wallet < total:
-            return {"message": "You don't have enough money in your wallet"}, 400
-
-        user.wallet -= total
+        for item in cart.items:
+            if item.product_to_cart:
+                product = item.product_to_cart
+                subtotal = item.quantity * product.base_price
+                total += subtotal
+            elif item.booking_to_cart:
+                booking = item.booking_to_cart
+                subtotal = booking.booking_price
+                total += subtotal
 
         # Crear venta
         new_sale = Sales(user_id=user.id, total=total)
         db.session.add(new_sale)
 
-        products_detail = []
-
         # Crear líneas de venta desde el carrito
         for item in cart.items:
-            new_sale_line = SalesLines(
-                product_id=item.product_to_cart.id,
-                quantity=item.quantity,
-                unit_price=item.product_to_cart.base_price,
-                sale=new_sale
-            )
-            db.session.add(new_sale_line)
+            if item.product_to_cart:
+                new_sale_line = SalesLines(
+                    product_id=item.product_to_cart.id,
+                    quantity=item.quantity,
+                    unit_price=item.product_to_cart.base_price,
+                    sale=new_sale
+                )
+            elif item.booking_to_cart:
+                    new_sale_line = SalesLines(
+                    booking_id=item.booking_to_cart.id,
+                    quantity=1,
+                    unit_price=item.booking_to_cart.booking_price,
+                    sale=new_sale
+                )   
+        
+        db.session.add(new_sale_line)
 
-            products_detail.append(item.serialize())
+        products_detail.append(item.serialize())
 
         # Asignar la venta a la reserva
         bookings.sales.append(new_sale)
