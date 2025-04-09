@@ -3,7 +3,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 """
 from flask import Flask, request, jsonify, url_for, Blueprint
 from api.utils import generate_sitemap, APIException
-from api.models import db, Users, Bookings, CinemaRooms, ShowTimes, Movies, Sales, SalesLines, Products, Payments
+from api.models import db, Users, Bookings, CinemaRooms, ShowTimes, Movies, Sales, SalesLines, Products, Payments, Cart, CartItem
 from flask_cors import CORS
 import requests
 import os
@@ -40,6 +40,7 @@ def login():
     data = request.json
     """ print("soy el data del login: ", data) """
     email = data.get('email')
+    # id = data.get('id')
     password = data.get('password')
     row = db.session.execute(db.select(Users).where(Users.email == email, Users.password == password)).scalar()
     if not row:
@@ -51,7 +52,7 @@ def login():
              "email": user['email'],
              "is_admin": user['is_admin']}
     print("login claims: ", claims)
-    access_token = create_access_token(identity=email)
+    access_token = create_access_token(identity=user['email'], additional_claims=claims)
     response_body['message'] = 'User logged!'
     response_body['access_token'] = access_token
     response_body['results'] = user
@@ -67,9 +68,9 @@ def register():
     db.session.add(row)
     db.session.commit()
     user = row.serialize()
-    claims ={'id': user['id'],
-             'is_admin': user['is_admin']}
-    
+    claims = {"id": user['id'],
+             "email": user['email'],
+             "is_admin": user['is_admin']}   
     access_token = create_access_token(identity=user['email'], additional_claims=claims)
     response_body['message'] = 'New User Created'
     response_body['access_token'] = access_token
@@ -99,16 +100,15 @@ def get_movie_details(movie_id):
 
     response_body["message"] = "Movie details"
     response_body["result"] = movie.serialize()
-
     return jsonify(response_body), 200 
 
 
-@api.route('/store-cinema', methods=['GET', 'POST'])
+@api.route('/cart/add', methods=['POST'])
 @jwt_required()
-def store_cinema():
+def add_to_cart():
     response_body = {}
     current_user_email = get_jwt_identity()
-    user = db.session.execute(db.select(Users).where(Users.email== current_user_email)).scalar()
+    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
 
     bookings = user_bookings(user.id)
 
@@ -177,7 +177,7 @@ def store_cinema():
         }
         return response_body, 201
 
-    
+
 @api.route('/book-ticket', methods=['POST'])
 @jwt_required()
 def book_ticket():
@@ -199,6 +199,7 @@ def book_ticket():
         return jsonify({'message': 'Showtime not found'}), 404
     
     cinema_room = showtime.cinema_room_to
+    new_bookings = []
     
     for seat in seats_booked:
         row = seat.get('row')
@@ -219,13 +220,27 @@ def book_ticket():
             col=col,
             booking_price=5,
         )
-        
         db.session.add(new_booking)
-    
-    db.session.commit()
-    response_body['message'] = 'Booking successful'
-    response_body['booking'] = new_booking.user_bookings()
-    
+        db.session.commit()
+
+        new_bookings.append(new_booking)
+
+    cart = db.session.execute(db.select(Cart).where(Cart.user_id == user.id)).scalar()
+    if not cart:
+        cart = Cart(user_id=user.id)
+        db.session.add(cart)
+        db.session.commit()
+
+    for booking in new_bookings:
+        new_cart_item = CartItem(
+            cart_id=cart.id,
+            booking_id=booking.id
+        )
+        print('este es el print',booking.id)
+        db.session.add(new_cart_item)
+        db.session.commit()
+
+    response_body['message'] = 'Bookings added to cart'    
     return jsonify(response_body), 200
 
 
@@ -237,12 +252,15 @@ def get_showtime_seats(showtime_id):
         return jsonify({'message': 'Showtime not found'}), 404
 
     response_body['details'] = showtime.serialize()
-
     return response_body, 200
 
 
+@api.route('/products', methods=['GET'])
+@jwt_required()
+
 @api.route('/products', methods=['GET', 'POST'])
 def products():
+    create_cinema_menus()
     response_body = {}
     if request.method == 'GET':
         results = db.session.execute(db.select(Products)).scalars()
@@ -250,13 +268,18 @@ def products():
         return response_body, 200
 
 
-@api.route('/user-detail', methods=['GET', 'PUT'])
+@api.route('/users/<int:id>', methods=['GET', 'PUT'])
 @jwt_required()
-def user_profile():
+def user_profile(id):
     response_body = {}
-    current_user_email = get_jwt_identity()
-    user = db.session.execute(db.select(Users).where(Users.email==current_user_email)).scalar()
-      
+    current_user_id = get_jwt()["id"]
+    if current_user_id != id: 
+        response_body["message"] = "Error: unauthorization"
+        return response_body, 404
+    user = db.session.execute(db.select(Users).where(Users.id == current_user_id)).scalar()
+    if not user: 
+        response_body["message"] = "usuario no existe"
+        return response_body, 400 
     if request.method == 'GET':
         response_body['user_details'] = {'user_name': user.username,
                                     'email': user.email,
@@ -265,11 +288,10 @@ def user_profile():
         return response_body, 200
     
     if request.method == 'PUT':
-        data = request.json
+        data = request.json or {}
         user.username = data.get('username', user.username)
         user.email = data.get('email', user.email)
         db.session.commit()
-        
         response_body['message'] = 'Your Profile is Updated Successfully!'
         response_body['results'] = user.serialize()
         return response_body, 200
@@ -285,6 +307,7 @@ def showtime_details(movie_id):
 
     response_body['showtime'] = [showtime.serialize() for showtime in showtimes]
     return jsonify(response_body), 200
+
 
 
 @api.route('/create-payment', methods=['POST'])
@@ -445,6 +468,28 @@ def import_movies():
                 release_date=release_date,
                 genre=genre)
             db.session.add(new_movie)
+
+    db.session.commit()
+
+
+def create_cinema_menus():
+
+    combos = [
+        Products(name="Classic Combo", base_price=9.99,
+                 description="Includes one medium popcorn and a soft drink"),
+        Products(name="Sweet Tooth Combo", base_price=7.99,
+                 description="Includes a bag of candy and a small popcorn"),
+        Products(name="Family Combo", base_price=19.99,
+                 description="Includes one large popcorn, two soft drinks, and one candy")
+    ]
+
+    for combo in combos:
+        exists = db.session.execute(
+            db.select(Products).where(Products.name == combo.name)
+        ).scalar()
+
+        if not exists:
+            db.session.add(combo)
 
     db.session.commit()
 

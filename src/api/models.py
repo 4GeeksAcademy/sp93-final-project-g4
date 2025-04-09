@@ -41,7 +41,7 @@ class Bookings(db.Model):
     
 
     def __repr__(self):
-        return f'<Booking user id: {self.user_id}>'
+        return f'<Booking id: {self.id}>'
     
     def user_bookings(self):
         return {
@@ -96,12 +96,21 @@ class ShowTimes(db.Model):
         reserved.append({"row": row, "col": col})
         self.reserved_seats = json.dumps(reserved)
 
+    def unreserve_seat(self, row, col):
+        reserved = self.get_reserved_seats()
+        updated_reserved = [seat for seat in reserved if not (seat['row'] == row and seat['col'] == col)]
+
+        if len(reserved) != len(updated_reserved):  
+            self.available += 1
+        self.reserved_seats = json.dumps(updated_reserved)
+
     def repr(self):
         return f'<Show Time: date time: {self.date_time} - movie : {self.movie_id}'
 
     def serialize(self):
         return{ 'id': self.id,
-                'date_time': self.date_time.strftime("%d/%m/%Y %H:%M"),
+                'date_time_hour': self.date_time.strftime("%H:%M"),
+                'date_time_day': self.date_time.strftime("%d/%m"),
                 'movie_id': self.movie_id,
                 'cinema_room': self.cinema_room_to.name,
                 'available_seats': self.available,
@@ -170,6 +179,8 @@ class SalesLines(db.Model):
     sale_id = db.Column(db.Integer, db.ForeignKey('sales.id'))
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'))
     product_to = db.relationship('Products', foreign_keys=[product_id], backref=db.backref('sales_lines', lazy='select'))
+    booking_id = db.Column(db.Integer, db.ForeignKey('bookings.id'))
+    booking_to = db.relationship('Bookings', foreign_keys=[booking_id], backref=db.backref('sales_lines', lazy='select'))
 
     def __repr__(self):
         return f'<Sales Lines: {self.id}'
@@ -177,14 +188,15 @@ class SalesLines(db.Model):
     def serialize(self):
         return{ 'quantity': self.quantity,
                 'unit_price': self.unit_price,
-                'product': self.product_to.name}
+                'product': self.product_to.name,
+                'booking': self.booking_to.showtime_to.movie_to.title}
     
     
 class Products(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(), nullable=False)
     base_price = db.Column(db.Float, nullable=False)
-    category = db.Column(db.Enum("Bebida", "Comida", "Merch", "Cinema Ticket", name = "category"), nullable=False)
+    description = db.Column(db.String(), nullable=False)
 
     def __repr__(self):
         return f'<Product: {self.name}'
@@ -193,7 +205,58 @@ class Products(db.Model):
         return{ 'id': self.id,
                 'name': self.name,
                 'base_price': self.base_price,
-                'category': self.category,}
+                'description': self.description}
+
+
+class Cart(db.Model):
+    __tablename__ = 'carts'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True)
+    user_to = db.relationship('Users', foreign_keys=[user_id], backref=db.backref('cart', lazy='select'))
+    items = db.relationship('CartItem', backref='cart', lazy='select')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow())
+
+    def __repr__(self):
+        return f'<Cart: Cart user{self.user_to.username}'
+
+
+class CartItem(db.Model):
+    __tablename__ = 'cart_items'
+    id = db.Column(db.Integer, primary_key=True)
+    cart_id = db.Column(db.Integer, db.ForeignKey('carts.id'))
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'))
+    booking_id = db.Column(db.Integer, db.ForeignKey('bookings.id'))
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+    product_to_cart = db.relationship('Products', foreign_keys=[product_id], backref=db.backref("cart_items", lazy="select"))
+    booking_to_cart = db.relationship('Bookings', foreign_keys=[booking_id], backref=db.backref("cart_items", lazy="select"))
+
+    def __repr__(self):
+        return f'<Cart Item: {self.id}'
+    
+    def serialize(self):
+        if self.product_id:
+            return {
+                "type": "Product",
+                "product_id": self.product_id,
+                "name": self.product_to_cart.name,
+                "quantity": self.quantity,
+                "unit_price": self.product_to_cart.base_price,
+                "subtotal": self.quantity * self.product_to_cart.base_price
+            }
+        elif self.booking_id:
+            return {
+                "type": "Booking",
+                "booking_id": self.booking_id,
+                "booking_price": self.booking_to_cart.booking_price,
+                "movie_title": self.booking_to_cart.showtime_to.movie_to.title,
+                "movie_image": self.booking_to_cart.showtime_to.movie_to.backdrop_path,
+                "showtime_date":self.booking_to_cart.showtime_to.date_time.strftime("%d/%m/%Y"),
+                "showtime_hour":self.booking_to_cart.showtime_to.date_time.strftime("%H:%M"),
+                "cinema_room_name": self.booking_to_cart.showtime_to.cinema_room_to.name,
+                "col_reserved": self.booking_to_cart.col,
+                "row_reserved": self.booking_to_cart.row,
+                "subtotal": self.booking_to_cart.booking_price
+            }
 
 
 class Payments(db.Model):

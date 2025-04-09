@@ -1,0 +1,41 @@
+/* Estiliza la pantalla del cine */
+.screen {
+    width: 80%;
+    margin: 0 auto;
+    padding: 10px;
+    background-color: black;
+    color: white;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+    border-radius: 5px;
+  }
+  
+  /* Centra la fila de asientos */
+  .seat-row {
+    margin-bottom: 20px;
+  }
+  
+  /* Estilo para los asientos */
+  .seat {
+    cursor: pointer;
+    margin: 0 10px;
+    display: inline-block;
+  }
+  
+  .seat-img {
+    width: 40px;
+    transition: transform 0.2s ease-in-out;
+  }
+  
+  /* Espacio para el pasillo entre los asientos */
+  .aisle {
+    width: 30px;
+  }
+  
+  /* Personalización de la fila de numeración */
+  .row-number {
+    font-weight: bold;
+    padding-right: 10px;
+  }
+  
