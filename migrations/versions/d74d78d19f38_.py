@@ -1,8 +1,14 @@
 """empty message
 
+<<<<<<<< HEAD:migrations/versions/d74d78d19f38_.py
 Revision ID: d74d78d19f38
 Revises: 
 Create Date: 2025-04-09 14:20:00.522856
+========
+Revision ID: 138b62ccf172
+Revises: 
+Create Date: 2025-04-08 18:55:36.342280
+>>>>>>>> develop:migrations/versions/138b62ccf172_.py
 
 """
 from alembic import op

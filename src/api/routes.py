@@ -32,6 +32,7 @@ def login():
     data = request.json
     """ print("soy el data del login: ", data) """
     email = data.get('email')
+    # id = data.get('id')
     password = data.get('password')
     row = db.session.execute(db.select(Users).where(Users.email == email, Users.password == password)).scalar()
     if not row:
@@ -43,7 +44,7 @@ def login():
              "email": user['email'],
              "is_admin": user['is_admin']}
     print("login claims: ", claims)
-    access_token = create_access_token(identity=email)
+    access_token = create_access_token(identity=user['email'], additional_claims=claims)
     response_body['message'] = 'User logged!'
     response_body['access_token'] = access_token
     response_body['results'] = user
@@ -59,9 +60,9 @@ def register():
     db.session.add(row)
     db.session.commit()
     user = row.serialize()
-    claims ={'id': user['id'],
-             'is_admin': user['is_admin']}
-    
+    claims = {"id": user['id'],
+             "email": user['email'],
+             "is_admin": user['is_admin']}   
     access_token = create_access_token(identity=user['email'], additional_claims=claims)
     response_body['message'] = 'New User Created'
     response_body['access_token'] = access_token
@@ -210,7 +211,7 @@ def book_ticket():
     return jsonify(response_body), 200
 
 
-@api.route('/cart', methods=['GET'])
+""" @api.route('/cart', methods=['GET'])
 @jwt_required()
 def view_cart():
     response_body = {}
@@ -240,7 +241,7 @@ def view_cart():
     response_body['bookings'] = bookings
     response_body['total'] = total
 
-    return response_body, 200
+    return response_body, 200 """
 
 
 @api.route('/cart/clear', methods=['DELETE'])
@@ -274,6 +275,38 @@ def clear_cart():
     db.session.commit()
 
     return {"message": "Cart cleared successfully"}, 200
+
+
+@api.route('/cart', methods=['GET'])
+@jwt_required()
+def view_cart():
+    response_body = {}
+    current_user_email = get_jwt_identity()
+    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
+
+    cart = db.session.execute(db.select(Cart).where(Cart.user_id == user.id)).scalar()
+    if not cart:
+        response_body['message'] = "Cart is empty"
+        return response_body, 200
+
+    items = db.session.execute(db.select(CartItem).where(CartItem.cart_id == cart.id)).scalars().all()
+
+    products = []
+    bookings = []
+    total = 0
+
+    for item in items:
+        if item.serialize()["type"] == "Product":
+            products.append(item.serialize())
+        elif item.serialize()["type"] == "Booking":
+            bookings.append(item.serialize())
+        total += item.serialize()["subtotal"]
+
+    response_body['products'] = products
+    response_body['bookings'] = bookings
+    response_body['total'] = total
+
+    return response_body, 200
 
 
 @api.route('/store-cinema', methods=['GET', 'POST'])
@@ -400,13 +433,18 @@ def products():
         return response_body, 200
 
 
-@api.route('/user-detail', methods=['GET', 'PUT'])
+@api.route('/users/<int:id>', methods=['GET', 'PUT'])
 @jwt_required()
-def user_profile():
+def user_profile(id):
     response_body = {}
-    current_user_email = get_jwt_identity()
-    user = db.session.execute(db.select(Users).where(Users.email==current_user_email)).scalar()
-      
+    current_user_id = get_jwt()["id"]
+    if current_user_id != id: 
+        response_body["message"] = "Error: unauthorization"
+        return response_body, 404
+    user = db.session.execute(db.select(Users).where(Users.id == current_user_id)).scalar()
+    if not user: 
+        response_body["message"] = "usuario no existe"
+        return response_body, 400 
     if request.method == 'GET':
         response_body['user_details'] = {'user_name': user.username,
                                     'email': user.email,
@@ -415,11 +453,10 @@ def user_profile():
         return response_body, 200
     
     if request.method == 'PUT':
-        data = request.json
+        data = request.json or {}
         user.username = data.get('username', user.username)
         user.email = data.get('email', user.email)
         db.session.commit()
-        
         response_body['message'] = 'Your Profile is Updated Successfully!'
         response_body['results'] = user.serialize()
         return response_body, 200
