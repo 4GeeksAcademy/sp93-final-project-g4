@@ -1,3 +1,31 @@
 /* 
     General Styles used on every website (Don't Repeat Yourself)
 */
+body{
+    background: linear-gradient(150deg, rgba(0, 0, 0, 1) 0%, rgba(31, 1, 56, 1) 68%, rgba(61, 3, 56, 1) 88%);
+    background-size: cover;
+    background-attachment: fixed; 
+    height: 100vh; 
+    margin: 0; 
+}
+
+.custom-alert {
+    position: fixed;
+    top: 20px;
+    right: -300px;
+    min-width: 250px;
+    z-index: 1050;
+    transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+    opacity: 0;
+}
+
+.custom-alert.show {
+    transform: translateX(-320px); 
+    opacity: 1;
+}
+
+.custom-alert.hide {
+    transform: translateX(0);
+    opacity: 0;
+}
+
