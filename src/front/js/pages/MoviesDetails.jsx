@@ -30,7 +30,7 @@ export const MoviesDetails = () => {
     return (
         <div style={{background: "linear-gradient(150deg, rgba(0, 0, 0, 1) 0%, rgba(31, 1, 56, 1) 68%, rgba(61, 3, 56, 1) 100%)"}}>
             <div className="billboard mb-3">
-                <img src={`https://image.tmdb.org/t/p/original${store.movieDetails.backdrop_path}`} alt={store.movieDetails.title}></img>
+                <img src={`https://image.tmdb.org/t/p/original${store.movieDetails.backdrop_path}`} alt={store.movieDetails.title} />
             </div>
             <div style={{ marginLeft: "1%" }}>
                 <div className="d-flex flex-wrap mb-4" style={{ marginLeft: "10%", marginRight: "10%", backgroundColor: "black" }}>

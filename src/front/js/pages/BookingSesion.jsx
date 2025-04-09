@@ -1,4 +1,5 @@
 import React, { useContext, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import butacaSimple from "../../img/butaca-sin-uso.png";
 import butacaSeleccionada from "../../img/butaca-uso.png";
 import butacaReservada from "../../img/butaca-reservada.png";
@@ -8,12 +9,11 @@ import { Context } from "../store/appContext";
 
 export const BookingSesion = () => {
 
-  const { store } = useContext(Context);
-  // const [ seats, setSeats ] = useState(seatsInitial)
+  const { store, actions } = useContext(Context);
   const [selectedSeat, setSelectedSeat] = useState([])
   const showtime = store.showtimeId;
-
   const { row_max, col_max, reserved_seats = [] } = showtime;
+  const navigate = useNavigate();
 
   const seats = [];
   for (let row = 1; row <= row_max; row++) {
@@ -41,6 +41,14 @@ export const BookingSesion = () => {
     } else {
       setSelectedSeat(prev => [...prev, { row, col }]);
     }
+  };
+
+  const handleReserve = () => {
+    if (selectedSeat.length === 0) return;
+  
+    actions.reserveBookings(showtime.id, selectedSeat);
+    navigate("/snack-bar");
+    window.location.reload()
   };
 
   return (
@@ -77,7 +85,7 @@ export const BookingSesion = () => {
         ))}
       </div>
  
-      <button className="btn btn-danger" onClick={() => console.log(selectedSeat)}>Buy bookings</button>
+      <button className="btn btn-danger" onClick={handleReserve}>Buy bookings</button> 
 
       {selectedSeat.length > 0 && (
         <div className="mt-3">

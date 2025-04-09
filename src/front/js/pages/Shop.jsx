@@ -1,5 +1,6 @@
 import React, { useContext, useState } from "react";
 import Card from 'react-bootstrap/Card';
+import { useNavigate } from "react-router-dom";
 import ListGroup from 'react-bootstrap/ListGroup';
 import Badge from 'react-bootstrap/Badge';
 import popCorn from '../../img/palomitas.jpg';
@@ -17,7 +18,7 @@ export const Shop = () => {
     //         [productId]: Math.max((productQuantities[productId] || 0) + change, 0),
     //     });
     // };
-
+    const navigate = useNavigate();
     const handleAddToCart = (productId) => {
         // const quantity = productQuantities[productId];
         const purchasedProduct = {
@@ -26,6 +27,16 @@ export const Shop = () => {
         };
         actions.addCart(purchasedProduct);
     };
+
+    const handleCheckout = () => {
+        const cartData = {
+            booking_id: store.showCart.bookings[0]?.booking_id
+        }  
+        console.log(cartData);
+        
+        actions.checkout(cartData)
+        navigate('/')
+    }
 
     return (
         <div className="container">
@@ -73,55 +84,62 @@ export const Shop = () => {
                 </Card>
 
                 <Card style={{ width: '18rem', marginLeft: '150px', height: 'auto' }} bg="light" text="dark">
-                    <Card.Img
-                        variant="top"
-                        src="https://res.cloudinary.com/odeoncloud//w_320%2Cf_auto%2Cq_70/v1742841543/wcloud/odeon/fr_11326.png"
-                    />
-                    <Card.Body style={{ height: 'auto' }}>
-                        <Card.Title>A WORKING MAN</Card.Title>
-                        <div>
-                            <p className="fw-bold">Date: Miercoles 2 de abril</p>
-                            <p className="fw-bold">Hour: 17:50</p>
-                        </div>
+                    {store.showCart.bookings?.length > 0 && (
+                        <>
+                            <Card.Img
+                                variant="top"
+                                src={`https://image.tmdb.org/t/p/original${store.showCart.bookings[0].movie_image}`}
+                            />
+                            <Card.Body style={{ height: 'auto' }}>
+                                <Card.Title>{store.showCart.bookings[0].movie_title}</Card.Title>
+                                <div>
+                                    <p className="fw-bold">Date: {store.showCart.bookings[0].showtime_date}</p>
+                                    <p className="fw-bold">Hour: {store.showCart.bookings[0].showtime_hour}</p>
+                                </div>
 
-                        <p>Tickets</p>
-                        <hr />
-                        <div className="container text-center text-secondary">
-                            <div className="row align-items-center">
-                                <div className="col">Theater</div>
-                                <div className="col">Row</div>
-                                <div className="col">Col</div>
-                            </div>
-                        </div>
-                        <div className="container text-center fw-bold pt-1">
-                            <div className="row align-items-center">
-                                <div className="col">3</div>
-                                <div className="col">4</div>
-                                <div className="col">6</div>
-                            </div>
-                        </div>
-
-                        <p className="pt-4">Snack</p>
-                        <hr />
-                        {
-                                store.showCart.cart !== undefined ? (
-                                store.showCart.cart.map((c) => (
-                                    <div key={c.product_id}>
-                                        <p className="text-center fw-bold">{c.name}</p>
-                                        <div className="d-flex justify-content-around" style={{ marginTop: '-10px' }}>
-                                            <span>{c.quantity}x</span>
-                                            <span>+{c.unit_price} €</span>
-                                        </div>
+                                <p>Tickets</p>
+                                <hr />
+                                <div className="container text-center text-secondary">
+                                    <div className="row align-items-center">
+                                        <div className="col">Theater</div>
+                                        <div className="col">Row</div>
+                                        <div className="col">Col</div>
                                     </div>
-                                ))
-                            ) : (
-                                <span className="text-secondary">{store.showCart.message}</span>
-                            )
-                        }
+                                </div>
 
+                                <div className="container text-center fw-bold pt-1">
+                                    {store.showCart.bookings.map((b) => (
+                                        <div key={b.booking_id} className="row align-items-center">
+                                            <div className="col">{b.cinema_room_name}</div>
+                                            <div className="col">{b.row_reserved}</div>
+                                            <div className="col">{b.col_reserved}</div>
+                                        </div>
+                                    ))}
+                                </div>
 
-                    </Card.Body>
+                                <p className="pt-4">Snack</p>
+                                <hr />
+                                {store.showCart.products?.length > 0 ? (
+                                    store.showCart.products.map((c) => (
+                                        <div key={c.product_id}>
+                                            <p className="text-center fw-bold">{c.name}</p>
+                                            <div className="d-flex justify-content-around" style={{ marginTop: '-10px' }}>
+                                                <span>{c.quantity}x</span>
+                                                <span>+{c.unit_price} €</span>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <span className="text-secondary">{store.showCart.message || "No snacks selected."}</span>
+                                )}
+
+                                <button type="button" className="btn btn-danger mt-5" onClick={handleCheckout}>Finalizar compra</button>
+                                
+                            </Card.Body>
+                        </>
+                    )}
                 </Card>
+
             </div>
         </div>
     )

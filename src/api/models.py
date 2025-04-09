@@ -41,7 +41,7 @@ class Bookings(db.Model):
     
 
     def __repr__(self):
-        return f'<Booking user id: {self.user_id}>'
+        return f'<Booking id: {self.id}>'
     
     def user_bookings(self):
         return {
@@ -95,6 +95,14 @@ class ShowTimes(db.Model):
         reserved = self.get_reserved_seats()
         reserved.append({"row": row, "col": col})
         self.reserved_seats = json.dumps(reserved)
+
+    def unreserve_seat(self, row, col):
+        reserved = self.get_reserved_seats()
+        updated_reserved = [seat for seat in reserved if not (seat['row'] == row and seat['col'] == col)]
+
+        if len(reserved) != len(updated_reserved):  
+            self.available += 1
+        self.reserved_seats = json.dumps(updated_reserved)
 
     def repr(self):
         return f'<Show Time: date time: {self.date_time} - movie : {self.movie_id}'
@@ -171,6 +179,8 @@ class SalesLines(db.Model):
     sale_id = db.Column(db.Integer, db.ForeignKey('sales.id'))
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'))
     product_to = db.relationship('Products', foreign_keys=[product_id], backref=db.backref('sales_lines', lazy='select'))
+    booking_id = db.Column(db.Integer, db.ForeignKey('bookings.id'))
+    booking_to = db.relationship('Bookings', foreign_keys=[booking_id], backref=db.backref('sales_lines', lazy='select'))
 
     def __repr__(self):
         return f'<Sales Lines: {self.id}'
@@ -178,7 +188,8 @@ class SalesLines(db.Model):
     def serialize(self):
         return{ 'quantity': self.quantity,
                 'unit_price': self.unit_price,
-                'product': self.product_to.name}
+                'product': self.product_to.name,
+                'booking': self.booking_to.showtime_to.movie_to.title}
     
     
 class Products(db.Model):
@@ -201,8 +212,9 @@ class Cart(db.Model):
     __tablename__ = 'carts'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True)
-    user_to = db.relationship('Users', backref='cart')
+    user_to = db.relationship('Users', foreign_keys=[user_id], backref=db.backref('cart', lazy='select'))
     items = db.relationship('CartItem', backref='cart', lazy='select')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow())
 
     def __repr__(self):
         return f'<Cart: Cart user{self.user_to.username}'
@@ -215,8 +227,8 @@ class CartItem(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'))
     booking_id = db.Column(db.Integer, db.ForeignKey('bookings.id'))
     quantity = db.Column(db.Integer, nullable=False, default=1)
-    product_to_cart = db.relationship('Products', backref="cart_items", lazy="select")
-    booking_to_cart = db.relationship('Bookings', backref="cart_items", lazy="select")
+    product_to_cart = db.relationship('Products', foreign_keys=[product_id], backref=db.backref("cart_items", lazy="select"))
+    booking_to_cart = db.relationship('Bookings', foreign_keys=[booking_id], backref=db.backref("cart_items", lazy="select"))
 
     def __repr__(self):
         return f'<Cart Item: {self.id}'
@@ -234,9 +246,14 @@ class CartItem(db.Model):
         elif self.booking_id:
             return {
                 "type": "Booking",
+                "booking_id": self.booking_id,
                 "booking_price": self.booking_to_cart.booking_price,
                 "movie_title": self.booking_to_cart.showtime_to.movie_to.title,
-                "showtime_date":self.booking_to_cart.showtime_to.date_time.strftime("%d/%m/%Y %H:%M"),
+                "movie_image": self.booking_to_cart.showtime_to.movie_to.backdrop_path,
+                "showtime_date":self.booking_to_cart.showtime_to.date_time.strftime("%d/%m/%Y"),
+                "showtime_hour":self.booking_to_cart.showtime_to.date_time.strftime("%H:%M"),
                 "cinema_room_name": self.booking_to_cart.showtime_to.cinema_room_to.name,
+                "col_reserved": self.booking_to_cart.col,
+                "row_reserved": self.booking_to_cart.row,
                 "subtotal": self.booking_to_cart.booking_price
             }

@@ -14,6 +14,8 @@ const getState = ({ getStore, getActions, setStore }) => {
 			productList: [],
 			showCart: [],
 			showtimeMovie: [],
+			reserve: {},
+			checkoutCart: {},
 			alert: {text: '', visible: false, background: 'primary'},
 		},
 		actions: {
@@ -241,9 +243,12 @@ const getState = ({ getStore, getActions, setStore }) => {
 				}
 
 				const data = await response.json()
+				console.log(data);
+				
 				setStore({ showCart: data})
 			},
 			reserveBookings: async (idSesion, reserve) => {
+				const token = localStorage.getItem('token')
 				const response = await fetch(`${process.env.BACKEND_URL}/api/book-ticket`,
 					{
 						method: 'POST',
@@ -252,7 +257,10 @@ const getState = ({ getStore, getActions, setStore }) => {
 							"Authorization" : `Bearer ${token}`
 						},
 
-						body : JSON.stringify(idSesion, reserve)
+						body: JSON.stringify({
+							showtime_id: idSesion,
+							seats_booked: reserve
+						  })
 					})
 				
 				if(!response.ok) {
@@ -261,8 +269,33 @@ const getState = ({ getStore, getActions, setStore }) => {
 				}
 
 				const data = await response.json()
-				console.log(data);
-				
+				setStore({ reserve: data})	
+			},
+			checkout: async (idBooking) => {
+				const token = localStorage.getItem('token')
+				const response = await fetch(`${process.env.BACKEND_URL}/api/store-cinema`, 
+					{
+						method: 'POST',
+						headers: {
+							"Content-Type" : "Application/json",
+							"Authorization" : `Bearer ${token}`
+						},
+
+						body: JSON.stringify(idBooking)
+					})
+				if(!response.ok) {
+					console.log("Error", response.status, response.statusText);
+					return;
+				}
+
+				const data = await response.json()
+				setStore({
+					checkoutCart: data.results,
+					alert: { visible: true, text: `${data.message}`, background: "success" }
+				})
+				setTimeout(() => {
+					setStore({ alert: { visible: false, text: "", background: "" } });
+				}, 2000);
 			}
 		}
 	};
