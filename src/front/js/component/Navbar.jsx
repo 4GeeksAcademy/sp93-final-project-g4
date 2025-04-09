@@ -23,8 +23,8 @@ export const Navbar = () => {
 		event.preventDefault();
 		const updateProfile = {
 			id: store.user.id,
-			email,
-			username
+			email: email.trim() !== "" ? email : store.user.email,
+			username: username.trim() !== "" ? username : store.user.username
 		}
 		actions.editProfile(updateProfile)
 		setShow(false)
@@ -110,7 +110,6 @@ export const Navbar = () => {
 									<div>
 										<span>	Username: {user.username} </span>
 									</div>
-
 									<Dropdown.Divider />
 									{/* <Dropdown.Item onClick={handleShow} className="text-black"> Edit Profile </Dropdown.Item> */}
 									<Dropdown.Item onClick={handleCart} className="text-succes"> GO! </Dropdown.Item>
