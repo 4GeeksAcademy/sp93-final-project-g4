@@ -17,15 +17,15 @@ export const Navbar = () => {
 	const handleClose = () => setShow(false);
 	const handleShow = () => setShow(true);
 	
-	const [username, setName] = useState("")
+	const [username, setName] = useState("store.user")
 	const [email, setEmail] = useState("")
 	
 	const handleEditSubmit = () => {
 		event.preventDefault();
 		const updateProfile= {
 			id: store.user.id,
-			email,
-			username
+			email: email.trim() !== "" ? email : store.user.email,
+			username: username.trim() !== "" ? username : store.user.username
 		}
 		actions.editProfile(updateProfile)
 		setShow(false)
@@ -40,9 +40,9 @@ export const Navbar = () => {
 		<nav className="navbar navbar-expand-lg bg-dark" data-bs-theme="dark">
 			<div className="container-fluid d-flex justify-content-between align-items-center">
 				<Link className="navbar-brand" to="/">Navbar</Link>
-				<button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarColor02" aria-controls="navbarColor02" aria-expanded="false" aria-label="Toggle navigation">
+				{/* <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarColor02" aria-controls="navbarColor02" aria-expanded="false" aria-label="Toggle navigation">
 					<span className="navbar-toggler-icon"></span>
-				</button>
+				</button> */}
 				{/*<ul className="navbar-nav me-auto">
 					<li className="nav-item">
 						<Link className="nav-link active" to="#">Home
