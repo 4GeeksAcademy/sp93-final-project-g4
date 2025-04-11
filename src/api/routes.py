@@ -73,6 +73,7 @@ def register():
 @api.route('/movies', methods=['GET'])
 def movies():
     import_movies()
+    create_showtimes()
     response_body = {}
     movies = db.session.execute(db.select(Movies)).scalars()
     response_body["message"] = "List of movies"
@@ -82,7 +83,6 @@ def movies():
 
 @api.route('/movies/<int:movie_id>', methods=['GET'])
 def get_movie_details(movie_id):
-    create_showtimes()
     response_body = {}
 
     movie = db.session.execute(db.select(Movies).where(Movies.id == movie_id)).scalar()
@@ -277,27 +277,11 @@ def view_cart():
     return response_body, 200
 
 
-@api.route('/store-cinema', methods=['GET', 'POST'])
+@api.route('/store-cinema', methods=['POST'])
 @jwt_required()
 def store_cinema():
-    response_body = {}
     current_user_email = get_jwt_identity()
     user = db.session.execute(db.select(Users).where(Users.email== current_user_email)).scalar()
-
-    bookings = user_bookings(user.id)
-
-    if not bookings:
-        response_body['message'] = "You don't have any reservation"
-        return response_body, 400
-    if request.method == 'GET':
-
-        response_body = {
-            "message": "Welcome to our Cinema Store! Here are your tickets:",
-            "your tickets": bookings,
-            "sales": get_sales(user.id)
-        }
-
-        return response_body, 200
     
     if request.method == 'POST':
         data = request.json
@@ -379,7 +363,8 @@ def store_cinema():
 
         return {
             "message": "Your purchase is done! Here's your resume:",
-            "results": products_detail
+            "results": products_detail,
+            "total": total
         }, 201
 
 
@@ -511,24 +496,25 @@ def create_cinema_menus():
     db.session.commit()
 
 
-def get_sales(user_id):
-    sales = db.session.execute(db.select(Sales)
-                               .where(Sales.user_id == user_id)
-                               ).scalars()
-    return [sale.serialize() for sale in sales]
+# def get_sales(user_id):
+#     sales = db.session.execute(db.select(Sales)
+#                                .where(Sales.user_id == user_id)
+#                                ).scalars()
+#     return [sale.serialize() for sale in sales]
 
 
-def user_bookings(user_id):
+# def user_bookings(user_id):
 
-    bookings = db.session.execute(
-        db.select(Bookings)
-        .join(ShowTimes, Bookings.showtime_id == ShowTimes.id)
-        .join(Movies, ShowTimes.movie_id == Movies.id)
-        .join(CinemaRooms, ShowTimes.cinema_room_id == CinemaRooms.id)
-        .where(Bookings.user_id == user_id)
-    ).scalars()
+#     bookings = db.session.execute(
+#         db.select(Bookings)
+#         .join(ShowTimes, Bookings.showtime_id == ShowTimes.id)
+#         .join(Movies, ShowTimes.movie_id == Movies.id)
+#         .join(CinemaRooms, ShowTimes.cinema_room_id == CinemaRooms.id)
+#         .where(Bookings.user_id == user_id)
+#     ).scalars()
 
-    return [ booking.user_bookings() for booking in bookings]
+#     return [ booking.user_bookings() for booking in bookings]
+
 
 def create_showtimes ():
 
