@@ -133,25 +133,28 @@ export const MoviesDetails = () => {
                 <h5>ACTORS</h5>
                 <p>{movie.actors || "No disponible"}</p> */}
             </div>
-            <div className="detalles">                           
-                <h1>TRAILER</h1>
+            <div className="detalles mt-5" style={{ marginLeft: "10%", marginRight: "10%", padding: "2rem", borderRadius: "5px", color: "#e0b9eb", boxShadow: "0 4px 10px rgba(212, 7, 212, 0.6)" }}>                           
+                <h3 style={{ borderBottom: "2px solid rgba(255,255,255,0.2)", paddingBottom: "0.5rem" }}>TRAILER</h3>
                 {store.movieDetails.trailer ? (
-                <iframe
-                    width="560"
-                    height="315"
-                    src={`https://www.youtube.com/embed/${store.movieDetails.trailer}`}
-                    title="YouTube video player"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                ></iframe>
+                    <div className="d-flex justify-content-center">
+                        <iframe
+                            width="720"
+                            height="405"
+                            src={`https://www.youtube.com/embed/${store.movieDetails.trailer}`}
+                            title="YouTube video player"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            style={{ borderRadius: "15px", boxShadow: "0 0 10px rgba(255, 255, 255, 0.3)" }}
+                        ></iframe>
+                    </div>
                 ) : (
-                    <div className="no-trailer">
-                        <p>No hay tráiler disponible</p>
+                    <div className="text-center">
+                        <p className="text-light">No trailer available</p>
                         <img
-                            src="https://img.freepik.com/foto-gratis/cinta-carrete-pelicula-palomitas-maiz_23-2147807359.jpg?ga=GA1.1.2027331089.1732724367&semt=ais_hybrid&w=740"
-                            alt="No trailer"
-                            style={{ width: '50%', height: 'auto', marginTop: '10px' }}
+                            src="https://cdn-icons-png.flaticon.com/512/702/702797.png"
+                            alt="No trailer available"
+                            style={{ width: '150px', height: 'auto', marginTop: '0.7' }}
                         />
                     </div>
                 )}
