@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 054071a97a6c
+Revision ID: 2c299fd2ec76
 Revises: 
-Create Date: 2025-04-09 18:14:12.426348
+Create Date: 2025-04-11 20:56:32.070406
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '054071a97a6c'
+revision = '2c299fd2ec76'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -67,6 +67,20 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('user_id')
     )
+    op.create_table('payments',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('payment_id', sa.String(), nullable=False),
+    sa.Column('amount', sa.Float(), nullable=True),
+    sa.Column('currency', sa.String(), nullable=False),
+    sa.Column('status', sa.String(), nullable=False),
+    sa.Column('description', sa.String(), nullable=False),
+    sa.Column('payment_method', sa.String(), nullable=True),
+    sa.Column('created_at', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('payment_id')
+    )
     op.create_table('show_times',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('date_time', sa.DateTime(), nullable=True),
@@ -108,7 +122,9 @@ def upgrade():
     sa.Column('total', sa.Float(), nullable=True),
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('booking_id', sa.Integer(), nullable=True),
+    sa.Column('payment_id', sa.String(), nullable=True),
     sa.ForeignKeyConstraint(['booking_id'], ['bookings.id'], ),
+    sa.ForeignKeyConstraint(['payment_id'], ['payments.payment_id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -118,6 +134,8 @@ def upgrade():
     sa.Column('unit_price', sa.Float(), nullable=True),
     sa.Column('sale_id', sa.Integer(), nullable=True),
     sa.Column('product_id', sa.Integer(), nullable=True),
+    sa.Column('booking_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['booking_id'], ['bookings.id'], ),
     sa.ForeignKeyConstraint(['product_id'], ['products.id'], ),
     sa.ForeignKeyConstraint(['sale_id'], ['sales.id'], ),
     sa.PrimaryKeyConstraint('id')
@@ -132,6 +150,7 @@ def downgrade():
     op.drop_table('cart_items')
     op.drop_table('bookings')
     op.drop_table('show_times')
+    op.drop_table('payments')
     op.drop_table('carts')
     op.drop_table('users')
     op.drop_table('products')

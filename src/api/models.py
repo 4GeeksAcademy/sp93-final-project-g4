@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timedelta
 import json 
 
 db = SQLAlchemy()
@@ -159,16 +159,21 @@ class Sales(db.Model):
     user_to = db.relationship('Users', foreign_keys=[user_id], backref=db.backref('sales'), lazy='select')
     sales_lines_to = db.relationship('SalesLines', backref='sale', lazy="select")
     booking_id = db.Column(db.Integer, db.ForeignKey('bookings.id'), nullable=True)
+    payment_id = db.Column(db.String, db.ForeignKey('payments.payment_id'), nullable=True)
+    payment_to = db.relationship('Payments', primaryjoin="Sales.payment_id == Payments.payment_id", backref=db.backref('sales', lazy='select'))
 
     def __repr__(self):
-        return f'<Sales: Sale Date{self.sale_date}'
+        return f'<<Sales id:{self.id}, user:{self.user_id}, total:{self.total}, payment_id:{self.payment_id}>'
     
     def serialize(self):
-        return{'sale_id': self.id,
-                'sale_date': self.sale_date.strftime("%d/%m/%Y %H:%M"),
-                'sales_lines': [sale_line.serialize() for sale_line in self.sales_lines_to],
-                'discount': self.discount,
-                'total': self.total,}
+        return {"id": self.id,
+                "sale_date": self.sale_date.strftime("%d/%m/%Y %H:%M"),
+                "total": self.total,
+                "discount": self.discount,
+                "user_id": self.user_id,
+                "booking_id": self.booking_id,
+                "payment_id": self.payment_id
+        }
 
 
 class SalesLines(db.Model):
@@ -262,7 +267,7 @@ class CartItem(db.Model):
 class Payments(db.Model):
     id = db.Column(db.Integer, primary_key=True)                                    # ID único del pago  
     payment_id = db.Column(db.String, unique=True, nullable=False)                  # ID del pago en MONEI  
-    amount = db.Column(db.Float, nullable=False)                                      
+    amount = db.Column(db.Float, nullable=True)                                      
     currency = db.Column(db.String, nullable=False, default="EUR")                    
     status = db.Column(db.String, nullable=False)                                   # Estado del pago (ej. "PENDING", "FAILED", "SUCCEED")  
     description = db.Column(db.String, nullable=False)                                
@@ -283,3 +288,4 @@ class Payments(db.Model):
             "created_at": self.created_at,
             "user_email": self.user_to.email
         }
+    
