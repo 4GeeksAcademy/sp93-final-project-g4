@@ -133,18 +133,29 @@ export const MoviesDetails = () => {
                 <h5>ACTORS</h5>
                 <p>{movie.actors || "No disponible"}</p> */}
             </div>
-            {/* <div className="detalles">                           
+            <div className="detalles">                           
                 <h1>TRAILER</h1>
-                <iframe 
-                    width="1047" 
-                    height="445"
-                    src="https://www.youtube.com/embed/j-RpvIuazmc" 
-                    title="Stromae, Pomme - &quot;Ma Meilleure Ennemie&quot; (de la segunda temporada de Arcane) [Videoclip oficial]" 
-                    frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                    referrerpolicy="strict-origin-when-cross-origin" 
-                    allowfullscreen>
-                </iframe>
-            </div> */}
+                {store.movieDetails.trailer ? (
+                <iframe
+                    width="560"
+                    height="315"
+                    src={`https://www.youtube.com/embed/${store.movieDetails.trailer}`}
+                    title="YouTube video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                ></iframe>
+                ) : (
+                    <div className="no-trailer">
+                        <p>No hay tráiler disponible</p>
+                        <img
+                            src="https://img.freepik.com/foto-gratis/cinta-carrete-pelicula-palomitas-maiz_23-2147807359.jpg?ga=GA1.1.2027331089.1732724367&semt=ais_hybrid&w=740"
+                            alt="No trailer"
+                            style={{ width: '50%', height: 'auto', marginTop: '10px' }}
+                        />
+                    </div>
+                )}
+            </div>
         </div>
     )
 }

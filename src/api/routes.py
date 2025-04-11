@@ -70,16 +70,6 @@ def register():
     return response_body, 200
 
 
-@api.route('/movies', methods=['GET'])
-def movies():
-    import_movies()
-    response_body = {}
-    movies = db.session.execute(db.select(Movies)).scalars()
-    response_body["message"] = "List of movies"
-    response_body["results"] = [movie.serialize() for movie in movies]
-    return response_body, 200
-
-
 @api.route('/movies/<int:movie_id>', methods=['GET'])
 def get_movie_details(movie_id):
     response_body = {}
@@ -498,6 +488,27 @@ def import_movies():
         release_date = movie.get("release_date", None)
         genre_list = [g["name"] for g in movie_details.get("genres", [])]
         genre = ", ".join(genre_list)
+
+        trailer = None
+        url_videos = f'{os.getenv("URL_TMDB")}/{tmdb_id}/videos'
+        videos_response = requests.get(url_videos, headers=headers)
+
+        if videos_response.status_code == 200:
+            videos_data = videos_response.json()
+            for video in videos_data.get("results", []):
+                print(f"🔹 {video.get('name')} | type: {video.get('type')} | site: {video.get('site')}")
+                
+            trailers = sorted([
+            video for video in videos_data.get("results", [])
+            if video["site"] == "YouTube" and video["type"] == "Trailer"
+        ], key=lambda v: (
+            'official' not in v["name"].lower(),
+            'teaser' in v["name"].lower(),
+            len(v["name"])
+        ))
+        if trailers:
+            trailer = trailers[0]["key"]
+
         movie_exist = db.session.execute(db.select(Movies).where(Movies.tmdb_id == tmdb_id)).scalar()
         if not movie_exist:
             new_movie = Movies(
@@ -510,10 +521,23 @@ def import_movies():
                 popularity=popularity,
                 poster_path=poster_path, 
                 release_date=release_date,
-                genre=genre)
+                genre=genre,
+                trailer=trailer)
             db.session.add(new_movie)
+        else:
+            movie_exist.trailer = trailer
 
     db.session.commit()
+
+
+@api.route('/movies', methods=['GET'])
+def movies():
+    import_movies()
+    response_body = {}
+    movies = db.session.execute(db.select(Movies)).scalars()
+    response_body["message"] = "List of movies"
+    response_body["results"] = [movie.serialize() for movie in movies]
+    return response_body, 200
 
 
 def create_cinema_menus():
