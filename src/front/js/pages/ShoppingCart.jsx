@@ -2,12 +2,13 @@ import React, { use, useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Context } from "../store/appContext.js";
 import "./../../styles/index.css"
+import { Login } from "./Login.jsx";
 
 export const ShoppingCart = () => {
     const { store, actions } = useContext(Context)
 
 
-    return (
+    return !store.isLogged ? <Login /> : (
         <div>
             <h1 className="text-center">My Order</h1>
             <hr />

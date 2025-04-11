@@ -44,7 +44,7 @@ export const Navbar = () => {
 			<div className="container-fluid">
 				<Link to="/">
 					<span className="">
-						<a href='https://postimages.org/' target='_blank'><img src='https://i.postimg.cc/mr9PQzBj/CINEMA-CENTER-logo-Final-removebg-preview.png' border='0' height="75" /></a>
+						<img src='https://i.postimg.cc/mr9PQzBj/CINEMA-CENTER-logo-Final-removebg-preview.png' border='0' height="75" />
 					</span>
 				</Link>
 				<button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarColor02" aria-controls="navbarColor02" aria-expanded="false" aria-label="Toggle navigation">

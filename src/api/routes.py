@@ -73,6 +73,7 @@ def register():
 @api.route('/movies', methods=['GET'])
 def movies():
     import_movies()
+    # create_showtimes()
     response_body = {}
     movies = db.session.execute(db.select(Movies)).scalars()
     response_body["message"] = "List of movies"
@@ -211,39 +212,6 @@ def book_ticket():
     return jsonify(response_body), 200
 
 
-""" @api.route('/cart', methods=['GET'])
-@jwt_required()
-def view_cart():
-    response_body = {}
-    current_user_email = get_jwt_identity()
-    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
-
-    cart = db.session.execute(db.select(Cart).where(Cart.user_id == user.id)).scalar()
-    if not cart:
-        response_body['message'] = "Cart is empty"
-        return response_body, 200
-
-
-    items = db.session.execute(db.select(CartItem).where(CartItem.cart_id == cart.id)).scalars().all()
-
-    products = []
-    bookings = []
-    total = 0
-
-    for item in items:
-        if item.serialize()["type"] == "Product":
-            products.append(item.serialize())
-        elif item.serialize()["type"] == "Booking":
-            bookings.append(item.serialize())
-        total += item.serialize()["subtotal"]
-
-    response_body['products'] = products
-    response_body['bookings'] = bookings
-    response_body['total'] = total
-
-    return response_body, 200 """
-
-
 @api.route('/cart/clear', methods=['DELETE'])
 @jwt_required()
 def clear_cart():
@@ -309,27 +277,11 @@ def view_cart():
     return response_body, 200
 
 
-@api.route('/store-cinema', methods=['GET', 'POST'])
+@api.route('/store-cinema', methods=['POST'])
 @jwt_required()
 def store_cinema():
-    response_body = {}
     current_user_email = get_jwt_identity()
     user = db.session.execute(db.select(Users).where(Users.email== current_user_email)).scalar()
-
-    bookings = user_bookings(user.id)
-
-    if not bookings:
-        response_body['message'] = "You don't have any reservation"
-        return response_body, 400
-    if request.method == 'GET':
-
-        response_body = {
-            "message": "Welcome to our Cinema Store! Here are your tickets:",
-            "your tickets": bookings,
-            "sales": get_sales(user.id)
-        }
-
-        return response_body, 200
     
     if request.method == 'POST':
         data = request.json
@@ -359,42 +311,47 @@ def store_cinema():
 
         total = 0
         products_detail = []
+        has_valid_items = False
 
+        # Crear venta
+        new_sale = Sales(user_id=user.id, total=total)
+
+        # Crear líneas de venta desde el carrito 
         for item in cart.items:
             if item.product_to_cart:
                 product = item.product_to_cart
                 subtotal = item.quantity * product.base_price
                 total += subtotal
+                has_valid_items = True
+
+                new_sale_line = SalesLines(
+                    product_id=product.id,
+                    quantity=item.quantity,
+                    unit_price=product.base_price,
+                    sale=new_sale
+                )
+                db.session.add(new_sale_line)
+                products_detail.append(item.serialize())
+
             elif item.booking_to_cart:
                 booking = item.booking_to_cart
                 subtotal = booking.booking_price
                 total += subtotal
+                has_valid_items = True
 
-        # Crear venta
-        new_sale = Sales(user_id=user.id, total=total)
-        db.session.add(new_sale)
-
-        # Crear líneas de venta desde el carrito
-        for item in cart.items:
-            if item.product_to_cart:
                 new_sale_line = SalesLines(
-                    product_id=item.product_to_cart.id,
-                    quantity=item.quantity,
-                    unit_price=item.product_to_cart.base_price,
+                    booking_id=booking.id,
+                    quantity=1,
+                    unit_price=booking.booking_price,
                     sale=new_sale
                 )
-            elif item.booking_to_cart:
-                    new_sale_line = SalesLines(
-                    booking_id=item.booking_to_cart.id,
-                    quantity=1,
-                    unit_price=item.booking_to_cart.booking_price,
-                    sale=new_sale
-                )   
+                db.session.add(new_sale_line)
+                products_detail.append(item.serialize())
+
+        if not has_valid_items:
+            return {"message": "You don't have valid items to buy"}, 400
         
         db.session.add(new_sale_line)
-
-        products_detail.append(item.serialize())
-
         # Asignar la venta a la reserva
         bookings.sales.append(new_sale)
 
@@ -406,7 +363,8 @@ def store_cinema():
 
         return {
             "message": "Your purchase is done! Here's your resume:",
-            "results": products_detail
+            "results": products_detail,
+            "total": total
         }, 201
 
 
@@ -538,21 +496,48 @@ def create_cinema_menus():
     db.session.commit()
 
 
-def get_sales(user_id):
-    sales = db.session.execute(db.select(Sales)
-                               .where(Sales.user_id == user_id)
-                               ).scalars()
-    return [sale.serialize() for sale in sales]
+# def get_sales(user_id):
+#     sales = db.session.execute(db.select(Sales)
+#                                .where(Sales.user_id == user_id)
+#                                ).scalars()
+#     return [sale.serialize() for sale in sales]
 
 
-def user_bookings(user_id):
+# def user_bookings(user_id):
 
-    bookings = db.session.execute(
-        db.select(Bookings)
-        .join(ShowTimes, Bookings.showtime_id == ShowTimes.id)
-        .join(Movies, ShowTimes.movie_id == Movies.id)
-        .join(CinemaRooms, ShowTimes.cinema_room_id == CinemaRooms.id)
-        .where(Bookings.user_id == user_id)
-    ).scalars()
+#     bookings = db.session.execute(
+#         db.select(Bookings)
+#         .join(ShowTimes, Bookings.showtime_id == ShowTimes.id)
+#         .join(Movies, ShowTimes.movie_id == Movies.id)
+#         .join(CinemaRooms, ShowTimes.cinema_room_id == CinemaRooms.id)
+#         .where(Bookings.user_id == user_id)
+#     ).scalars()
 
-    return [ booking.user_bookings() for booking in bookings]
+#     return [ booking.user_bookings() for booking in bookings]
+
+
+def create_showtimes ():
+
+    theater1 = CinemaRooms(
+        name="First",
+        capacity=50,
+        cinema_col=10,
+        cinema_row=5
+    )
+
+    db.session.add(theater1)
+    db.session.commit()
+
+    movie = db.session.execute(db.select(Movies).limit(1)).scalar()
+
+    date_time = datetime.now() + timedelta(hours=2)
+
+    showtime = ShowTimes(
+        date_time=date_time,
+        movie_id=movie.id,
+        cinema_room_id=theater1.id,
+        available=theater1.capacity 
+    )
+
+    db.session.add(showtime)
+    db.session.commit()
