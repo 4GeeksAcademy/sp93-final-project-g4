@@ -15,6 +15,7 @@ const getState = ({ getStore, getActions, setStore }) => {
 			showCart: [],
 			showtimeMovie: [],
 			reserve: {},
+			isLoadingUser: true,
 			checkoutCart: {},
 			alert: {text: '', visible: false, background: 'primary'},
 		},
@@ -89,7 +90,8 @@ const getState = ({ getStore, getActions, setStore }) => {
 					setStore({ 
 						isLogged: true, 
 						isAdmin: data.is_admin, 
-						user: data.first_name,
+						user: data.username,
+						isLoadingUser: false
 					})
 				}
 			},
@@ -272,8 +274,10 @@ const getState = ({ getStore, getActions, setStore }) => {
 					return;
 				}
 
-				const data = await response.json()
-				setStore({ reserve: data})	
+				// const data = await response.json()
+				// console.log(data);
+				
+				getActions().viewCart()	
 			},
 			checkout: async (idBooking) => {
 				const token = localStorage.getItem('token')
