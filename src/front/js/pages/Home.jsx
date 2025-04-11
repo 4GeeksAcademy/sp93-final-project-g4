@@ -17,7 +17,7 @@ export const Home = () => {
 
     return (
 
-        <div style={{background: "linear-gradient(150deg, rgba(0, 0, 0, 1) 0%, rgba(31, 1, 56, 1) 68%, rgba(61, 3, 56, 1) 88%)"}}>
+        <div className="mb-4">
             <CarouselHome />
             <div className="container mt-5">
                 <h4> <span className="text-light fs-2">Cinema Center /</span> New Movies</h4>
