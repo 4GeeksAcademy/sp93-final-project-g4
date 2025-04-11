@@ -70,17 +70,6 @@ def register():
     return response_body, 200
 
 
-@api.route('/movies', methods=['GET'])
-def movies():
-    import_movies()
-    # create_showtimes()
-    response_body = {}
-    movies = db.session.execute(db.select(Movies)).scalars()
-    response_body["message"] = "List of movies"
-    response_body["results"] = [movie.serialize() for movie in movies]
-    return response_body, 200
-
-
 @api.route('/movies/<int:movie_id>', methods=['GET'])
 def get_movie_details(movie_id):
     response_body = {}
