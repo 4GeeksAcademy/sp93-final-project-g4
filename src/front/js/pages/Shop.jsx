@@ -5,6 +5,7 @@ import ListGroup from 'react-bootstrap/ListGroup';
 import Badge from 'react-bootstrap/Badge';
 import popCorn from '../../img/palomitas.jpg';
 import { Context } from "../store/appContext";
+import { Login } from "./Login.jsx";
 
 
 export const Shop = () => {
@@ -38,7 +39,8 @@ export const Shop = () => {
         navigate('/')
     }
 
-    return (
+    return !store.isLogged ? <Login /> : (
+        
         <div className="container">
             <h1 className="mt-5">Snack Bar</h1>
             <hr />
