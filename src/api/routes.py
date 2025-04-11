@@ -73,7 +73,7 @@ def register():
 @api.route('/movies', methods=['GET'])
 def movies():
     import_movies()
-    create_showtimes()
+    # create_showtimes()
     response_body = {}
     movies = db.session.execute(db.select(Movies)).scalars()
     response_body["message"] = "List of movies"

@@ -47,7 +47,8 @@ export const BookingSesion = () => {
     if (selectedSeat.length === 0) return;
 
     actions.reserveBookings(showtime.id, selectedSeat);
-    navigate("/snack-bar");      
+    navigate("/snack-bar");
+    // window.location.reload()      
   };
 
   return (
