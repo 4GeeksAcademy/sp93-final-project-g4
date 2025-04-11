@@ -455,7 +455,7 @@ def import_movies():
         poster_path = movie["poster_path"]
         release_date = movie.get("release_date", None)
         genre_list = [g["name"] for g in movie_details.get("genres", [])]
-        genre = ",".join(genre_list)
+        genre = ", ".join(genre_list)
         movie_exist = db.session.execute(db.select(Movies).where(Movies.tmdb_id == tmdb_id)).scalar()
         if not movie_exist:
             new_movie = Movies(
