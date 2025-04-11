@@ -133,6 +133,8 @@ class Movies(db.Model):
     release_date = db.Column(db.String)
     genre = db.Column((db.String), nullable=True)
     trailer = db.Column((db.String), nullable=True)
+    actors = db.Column((db.String), nullable=True)
+    director = db.Column((db.String), nullable=True)
 
     def __repr__(self):
         return f'<Movies: title{self.title}'
@@ -149,7 +151,9 @@ class Movies(db.Model):
                 'poster_path': self.poster_path,
                 'release_date': self.release_date,
                 'genre': self.genre,
-                'trailer': self.trailer}
+                'trailer': self.trailer,
+                'actors': self.actors,
+                'director': self.director}
 
 
 class Sales(db.Model):

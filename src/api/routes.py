@@ -497,7 +497,7 @@ def import_movies():
             videos_data = videos_response.json()
             for video in videos_data.get("results", []):
                 print(f"🔹 {video.get('name')} | type: {video.get('type')} | site: {video.get('site')}")
-                
+
             trailers = sorted([
             video for video in videos_data.get("results", [])
             if video["site"] == "YouTube" and video["type"] == "Trailer"
@@ -508,6 +508,18 @@ def import_movies():
         ))
         if trailers:
             trailer = trailers[0]["key"]
+
+        url_credits = f'{os.getenv("URL_TMDB")}/{tmdb_id}/credits'
+        credits_response = requests.get(url_credits, headers=headers)
+        credits_data = credits_response.json()
+        print(f"🎥 {title} ┊ Cast: {[c['name'] for c in credits_data.get('cast', [])[:5]]}")
+        print(f"🎬 {title} ┊ Director: {[c['name'] for c in credits_data.get('crew', []) if c['job'] == 'Director']}")
+
+        cast = credits_data.get("cast", [])[:5]
+        actors = ", ".join([actor["name"] for actor in cast])
+
+        crew =credits_data.get("crew", [])
+        director = next((member["name"] for member in crew if member["job"] == "Director"), None)
 
         movie_exist = db.session.execute(db.select(Movies).where(Movies.tmdb_id == tmdb_id)).scalar()
         if not movie_exist:
@@ -522,10 +534,14 @@ def import_movies():
                 poster_path=poster_path, 
                 release_date=release_date,
                 genre=genre,
-                trailer=trailer)
+                trailer=trailer,
+                actors=actors,
+                director=director)
             db.session.add(new_movie)
         else:
             movie_exist.trailer = trailer
+            movie_exist.actors = actors
+            movie_exist.director = director
 
     db.session.commit()
 

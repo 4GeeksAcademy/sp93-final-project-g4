@@ -128,10 +128,10 @@ export const MoviesDetails = () => {
             <div className="detalles" style={{ marginLeft: "10%", marginRight: "10%", padding: "2rem", borderRadius: "5px", color: "#e0b9eb", boxShadow: "0 4px 10px rgba(212, 7, 212, 0.6)" }}>                           
                 <h3 style={{ borderBottom: "2px solid rgba(255,255,255,0.2)", paddingBottom: "0.5rem" }}>OVERVIEW</h3>
                 <p style={{ fontSize: "1.1rem", lineHeight: "2", color: "#ddd" }}>{store.movieDetails.overview}</p>
-                {/* <h5>DIRECTOR</h5>
-                <p>{movie.director || "No disponible"}</p>
+                <h5>DIRECTOR</h5>
+                <p>{store.movieDetails.director || "No disponible"}</p>
                 <h5>ACTORS</h5>
-                <p>{movie.actors || "No disponible"}</p> */}
+                <p>{store.movieDetails.actors || "No disponible"}</p>
             </div>
             <div className="detalles mt-5" style={{ marginLeft: "10%", marginRight: "10%", padding: "2rem", borderRadius: "5px", color: "#e0b9eb", boxShadow: "0 4px 10px rgba(212, 7, 212, 0.6)" }}>                           
                 <h3 style={{ borderBottom: "2px solid rgba(255,255,255,0.2)", paddingBottom: "0.5rem" }}>TRAILER</h3>
