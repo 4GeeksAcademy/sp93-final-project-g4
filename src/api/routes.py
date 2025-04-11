@@ -715,8 +715,7 @@ def create_cinema_menus():
 #         .where(Bookings.user_id == user_id)
 #     ).scalars()
 
-
-    return [ booking.user_bookings() for booking in bookings]
+#     return [ booking.user_bookings() for booking in bookings]
 
 
 def create_showtimes ():
