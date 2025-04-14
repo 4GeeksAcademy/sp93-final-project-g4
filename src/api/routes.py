@@ -529,7 +529,7 @@ def check_payment_status(payment_id):
     ).scalar()
     if not payment:
         response_body["message"] = "Payment not found"
-        return response_body, 404
+        return response_body, 404 
 
     payment_response = monei_client.payments.get(payment_id)                              # Llamada a la API de MONEI
     print("Respuesta del estado del pago:", payment_response)
