@@ -128,15 +128,15 @@ export const MoviesDetails = () => {
             <div className="detalles" style={{ marginLeft: "10%", marginRight: "10%", padding: "2rem", borderRadius: "5px", color: "#e0b9eb", boxShadow: "0 4px 10px rgba(212, 7, 212, 0.6)" }}>                           
                 <h3 style={{ borderBottom: "2px solid rgba(255,255,255,0.2)", paddingBottom: "0.5rem" }}>OVERVIEW</h3>
                 <p style={{ fontSize: "1.1rem", lineHeight: "2", color: "#ddd" }}>{store.movieDetails.overview}</p>
-            </div>
-            <div className="detalles mt-5" style={{ marginLeft: "10%", marginRight: "10%", padding: "2rem", borderRadius: "5px", color: "#e0b9eb", boxShadow: "0 4px 10px rgba(212, 7, 212, 0.6)" }}>
                 <h3 style={{ borderBottom: "2px solid rgba(255,255,255,0.2)", paddingBottom: "0.5rem" }}>DIRECTOR</h3>
                 <p style={{ fontSize: "1.1rem", lineHeight: "2", color: "#ddd" }}>{store.movieDetails.director || "No disponible"}</p>
                 <h3 style={{ borderBottom: "2px solid rgba(255,255,255,0.2)", paddingBottom: "0.5rem" }}>ACTORS</h3>
                 <p style={{ fontSize: "1.1rem", lineHeight: "2", color: "#ddd" }}>{store.movieDetails.actors || "No disponible"}</p>
             </div>
-            <div className="detalles mt-5" style={{ marginLeft: "10%", marginRight: "10%", padding: "2rem", borderRadius: "5px", color: "#e0b9eb", boxShadow: "0 4px 10px rgba(212, 7, 212, 0.6)" }}>
+            {/* <div className="detalles mt-5" style={{ marginLeft: "10%", marginRight: "10%", padding: "2rem", borderRadius: "5px", color: "#e0b9eb", boxShadow: "0 4px 10px rgba(212, 7, 212, 0.6)" }}>
             </div>
+            <div className="detalles mt-5" style={{ marginLeft: "10%", marginRight: "10%", padding: "2rem", borderRadius: "5px", color: "#e0b9eb", boxShadow: "0 4px 10px rgba(212, 7, 212, 0.6)" }}>
+            </div> */}
             <div className="detalles mt-5" style={{ marginLeft: "10%", marginRight: "10%", padding: "2rem", borderRadius: "5px", color: "#e0b9eb", boxShadow: "0 4px 10px rgba(212, 7, 212, 0.6)" }}>                           
                 <h3 style={{ borderBottom: "2px solid rgba(255,255,255,0.2)", paddingBottom: "0.5rem" }}>TRAILER</h3>
                 {store.movieDetails.trailer ? (

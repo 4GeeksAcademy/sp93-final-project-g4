@@ -469,8 +469,6 @@ def import_movies():
         url_credits = f'{os.getenv("URL_TMDB")}/{tmdb_id}/credits'
         credits_response = requests.get(url_credits, headers=headers)
         credits_data = credits_response.json()
-        print(f"🎥 {title} ┊ Cast: {[c['name'] for c in credits_data.get('cast', [])[:5]]}")
-        print(f"🎬 {title} ┊ Director: {[c['name'] for c in credits_data.get('crew', []) if c['job'] == 'Director']}")
 
         cast = credits_data.get("cast", [])[:5]
         actors = ", ".join([actor["name"] for actor in cast])
