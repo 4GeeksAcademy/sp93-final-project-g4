@@ -1,0 +1,11 @@
+.card {
+    margin-bottom: 30px;
+  }
+  .status-failed {
+    color: red;
+    font-weight: bold;
+  }
+  .status-success {
+    color: green;
+    font-weight: bold;
+  }

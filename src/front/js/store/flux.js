@@ -104,6 +104,12 @@ const getState = ({ getStore, getActions, setStore }) => {
 				)
 				if (!response.ok) {
 					console.log('Error for loggin', response.status, response.statusText)
+					setStore({
+						alert: { visible: true, text: "Error for login!", background: "danger" }
+					})
+					setTimeout(() => {
+						setStore({ alert: { visible: false, text: "", background: "" } });
+					}, 2000)
 				}
 
 				const data = await response.json()
