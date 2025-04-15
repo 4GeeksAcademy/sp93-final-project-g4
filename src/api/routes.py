@@ -12,6 +12,9 @@ from flask_jwt_extended import jwt_required
 from flask_jwt_extended import get_jwt_identity
 from flask_jwt_extended import get_jwt
 from datetime import datetime, timedelta
+import qrcode
+import io
+import base64
 
 
 api = Blueprint('api', __name__)
@@ -24,6 +27,13 @@ def handle_hello():
     response_body['message'] = "Hello! I'm a message that came from the backend, check the network tab on the google inspector and you will see the GET request"
     return response_body, 200
 
+def generate_qr_code(data: str) -> str:
+    qr = qrcode.make(data)
+    buffer = io.BytesIO()
+    qr.save(buffer, format="PNG")
+    buffer.seek(0)
+    img_str = base64.b64encode(buffer.read()).decode("utf-8")
+    return f"data:image/png;base64,{img_str}"
 
 @api.route('/login', methods=["POST"])
 def login():
@@ -281,17 +291,12 @@ def view_cart():
 @jwt_required()
 def store_cinema():
     current_user_email = get_jwt_identity()
-    user = db.session.execute(db.select(Users).where(Users.email== current_user_email)).scalar()
-    
+    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
+
     if request.method == 'POST':
         data = request.json
         booking_id = data.get('booking_id')
 
-        # Obtener usuario
-        current_user_email = get_jwt_identity()
-        user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
-
-        # Obtener la reserva
         bookings = db.session.execute(db.select(Bookings).where(
             Bookings.id == booking_id, 
             Bookings.user_id == user.id)
@@ -300,12 +305,7 @@ def store_cinema():
         if not bookings or bookings.showtime_to.date_time < datetime.utcnow():
             return {"message": "The reservation does not exist or has expired"}, 400
 
-        # Obtener carrito
         cart = db.session.execute(db.select(Cart).where(Cart.user_id == user.id)).scalar()
-        if cart and cart.items:
-            for item in cart.items:
-                print(item.product_to_cart)
-
         if not cart or not cart.items:
             return {"message": "Your cart is empty"}, 400
 
@@ -313,10 +313,8 @@ def store_cinema():
         products_detail = []
         has_valid_items = False
 
-        # Crear venta
         new_sale = Sales(user_id=user.id, total=total)
 
-        # Crear líneas de venta desde el carrito 
         for item in cart.items:
             if item.product_to_cart:
                 product = item.product_to_cart
@@ -346,16 +344,24 @@ def store_cinema():
                     sale=new_sale
                 )
                 db.session.add(new_sale_line)
-                products_detail.append(item.serialize())
+
+                # Genera el código QR
+                qr_data = f"Booking ID: {booking.id} | Movie: {booking.showtime_to.movie_to.title} | Room: {booking.showtime_to.cinema_room_to.name} | Time: {booking.showtime_to.date_time.strftime('%Y-%m-%d %H:%M')}"
+                qr_image = generate_qr_code(qr_data)
+
+                # Guarda el QR en la base de datos
+                booking.qr_code = qr_image
+
+                item_serialized = item.serialize()
+                item_serialized["qr_code"] = qr_image
+                products_detail.append(item_serialized)
 
         if not has_valid_items:
             return {"message": "You don't have valid items to buy"}, 400
-        
+
         db.session.add(new_sale_line)
-        # Asignar la venta a la reserva
         bookings.sales.append(new_sale)
 
-        # Vaciar el carrito
         for item in cart.items:
             db.session.delete(item)
 
