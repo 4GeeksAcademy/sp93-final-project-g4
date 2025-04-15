@@ -43,6 +43,7 @@ const getState = ({ getStore, getActions, setStore }) => {
 					return;
 				}
 				const data = await response.json()
+				console.log("Detalles de la peli:", data.result)
 				setStore({movieDetails: {...data.result, movieId}})
 			},
 			register: async (newUser) => {

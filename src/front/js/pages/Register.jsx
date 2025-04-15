@@ -2,7 +2,6 @@ import React, { useContext, useState } from "react";
 import { Context } from "../store/appContext";
 import { useNavigate } from "react-router-dom";
 import "./../../styles/register.css"
-import Carousel from 'react-bootstrap/Carousel';
 
 export const Register = () => {
 
@@ -30,7 +29,7 @@ export const Register = () => {
 
     return (
         <div className="register-container d-flex align-items-center justify-content-center vh-100">
-            <form className="shadow-lg rounded-4 p-4" onSubmit={handleRegister} style={{ width: "350px" }}>
+            <form className="shadow-lg rounded-4 p-4 mt-4" onSubmit={handleRegister} style={{ width: "350px" }}>
                 <h2 className="text-center mb-4">Create your account</h2>
 
                 <div className="mb-3">

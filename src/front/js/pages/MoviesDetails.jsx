@@ -28,7 +28,7 @@ export const MoviesDetails = () => {
     };
 
     return (
-        <div className="mb-3">
+        <div className="mb-5">
             <div className="billboard mb-3 mt-3" style={{ marginLeft: "10%", marginRight: "10%" }}>
                 <img src={`https://image.tmdb.org/t/p/original${store.movieDetails.backdrop_path}`} alt={store.movieDetails.title} style={{ borderRadius: "20px" }} />
             </div>
@@ -88,8 +88,8 @@ export const MoviesDetails = () => {
                     </div>
                 </div>
             </div>
-            <div className="row justify-content-start mb-3" style={{ marginLeft: "10%", marginRight: "10%" }}>
-                <div className="col-12">
+            <div className="justify-content-start mb-3" style={{ marginLeft: "10%", marginRight: "10%" }}>
+                <div>
                     {selectedDay && dateDay[selectedDay] && dateDay[selectedDay].length > 0 ? ( 
                         Object.entries(
                             dateDay[selectedDay].reduce((groupedRoom, showtime) => {
@@ -128,23 +128,41 @@ export const MoviesDetails = () => {
             <div className="detalles" style={{ marginLeft: "10%", marginRight: "10%", padding: "2rem", borderRadius: "5px", color: "#e0b9eb", boxShadow: "0 4px 10px rgba(212, 7, 212, 0.6)" }}>                           
                 <h3 style={{ borderBottom: "2px solid rgba(255,255,255,0.2)", paddingBottom: "0.5rem" }}>OVERVIEW</h3>
                 <p style={{ fontSize: "1.1rem", lineHeight: "2", color: "#ddd" }}>{store.movieDetails.overview}</p>
-                {/* <h5>DIRECTOR</h5>
-                <p>{movie.director || "No disponible"}</p>
-                <h5>ACTORS</h5>
-                <p>{movie.actors || "No disponible"}</p> */}
+                <h3 style={{ borderBottom: "2px solid rgba(255,255,255,0.2)", paddingBottom: "0.5rem" }}>DIRECTOR</h3>
+                <p style={{ fontSize: "1.1rem", lineHeight: "2", color: "#ddd" }}>{store.movieDetails.director || "No disponible"}</p>
+                <h3 style={{ borderBottom: "2px solid rgba(255,255,255,0.2)", paddingBottom: "0.5rem" }}>ACTORS</h3>
+                <p style={{ fontSize: "1.1rem", lineHeight: "2", color: "#ddd" }}>{store.movieDetails.actors || "No disponible"}</p>
             </div>
-            {/* <div className="detalles">                           
-                <h1>TRAILER</h1>
-                <iframe 
-                    width="1047" 
-                    height="445"
-                    src="https://www.youtube.com/embed/j-RpvIuazmc" 
-                    title="Stromae, Pomme - &quot;Ma Meilleure Ennemie&quot; (de la segunda temporada de Arcane) [Videoclip oficial]" 
-                    frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                    referrerpolicy="strict-origin-when-cross-origin" 
-                    allowfullscreen>
-                </iframe>
+            {/* <div className="detalles mt-5" style={{ marginLeft: "10%", marginRight: "10%", padding: "2rem", borderRadius: "5px", color: "#e0b9eb", boxShadow: "0 4px 10px rgba(212, 7, 212, 0.6)" }}>
+            </div>
+            <div className="detalles mt-5" style={{ marginLeft: "10%", marginRight: "10%", padding: "2rem", borderRadius: "5px", color: "#e0b9eb", boxShadow: "0 4px 10px rgba(212, 7, 212, 0.6)" }}>
             </div> */}
+            <div className="detalles mt-5" style={{ marginLeft: "10%", marginRight: "10%", padding: "2rem", borderRadius: "5px", color: "#e0b9eb", boxShadow: "0 4px 10px rgba(212, 7, 212, 0.6)" }}>                           
+                <h3 style={{ borderBottom: "2px solid rgba(255,255,255,0.2)", paddingBottom: "0.5rem" }}>TRAILER</h3>
+                {store.movieDetails.trailer ? (
+                    <div className="d-flex justify-content-center">
+                        <iframe
+                            width="720"
+                            height="405"
+                            src={`https://www.youtube.com/embed/${store.movieDetails.trailer}`}
+                            title="YouTube video player"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            style={{ borderRadius: "15px", boxShadow: "0 0 10px rgba(255, 255, 255, 0.3)" }}
+                        ></iframe>
+                    </div>
+                ) : (
+                    <div className="text-center">
+                        <p className="text-light">No trailer available</p>
+                        <img
+                            src="https://cdn-icons-png.flaticon.com/512/702/702797.png"
+                            alt="No trailer available"
+                            style={{ width: '150px', height: 'auto', marginTop: '0.7' }}
+                        />
+                    </div>
+                )}
+            </div>
         </div>
     )
 }
