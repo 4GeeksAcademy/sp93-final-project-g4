@@ -2,7 +2,7 @@ import React from "react";
 
 
 export const Footer = () => (
-	<footer className="d-flex flex-wrap justify-content-between align-items-center py-3 border-top bottom-0 w-100">
+	<footer className="d-flex flex-wrap justify-content-between min-vh-100 mt-auto align-items-center">
 		<p className="col-md-4 mb-0 text-body-secondary">© 2025 Cinema Center, Inc</p>
 
 		<a href="/" className="col-md-4 d-flex align-items-center justify-content-center mb-3 mb-md-0 me-md-auto link-body-emphasis text-decoration-none">
