@@ -105,6 +105,12 @@ const getState = ({ getStore, getActions, setStore }) => {
 				)
 				if (!response.ok) {
 					console.log('Error for loggin', response.status, response.statusText)
+					setStore({
+						alert: { visible: true, text: "Error for login!", background: "danger" }
+					})
+					setTimeout(() => {
+						setStore({ alert: { visible: false, text: "", background: "" } });
+					}, 2000)
 				}
 
 				const data = await response.json()
@@ -304,7 +310,33 @@ const getState = ({ getStore, getActions, setStore }) => {
 				setTimeout(() => {
 					setStore({ alert: { visible: false, text: "", background: "" } });
 				}, 2000);
-			}
+
+				getActions().deleteCart()
+			},
+			deleteCart: async () => {
+				const token = localStorage.getItem('token')
+				const response = await fetch(`${process.env.BACKEND_URL}/api/cart/clear`, 
+					{
+						method: 'DELETE',
+						headers: {
+							"Authorization" : `Bearer ${token}`
+						},
+					})
+
+					if(!response.ok) {
+						console.log("Error", response.status, response.statusText);
+						return;
+					}
+	
+					const data = await response.json()
+					setStore({
+						showCart: [],
+						alert: { visible: true, text: `${data.message}`, background: "success" }
+					})
+					setTimeout(() => {
+						setStore({ alert: { visible: false, text: "", background: "" } });
+					}, 2000);
+			},
 		}
 	};
 };

@@ -12,7 +12,7 @@ export const Navbar = () => {
 
 	const { store, actions } = useContext(Context);
 	const navigate = useNavigate()
-	const user = store.user || {};
+	const user = store.user;
 	const [show, setShow] = useState(false);
 	const handleClose = () => setShow(false);
 	const handleShow = () => setShow(true);
@@ -47,9 +47,7 @@ export const Navbar = () => {
 						<img src='https://i.postimg.cc/mr9PQzBj/CINEMA-CENTER-logo-Final-removebg-preview.png' border='0' height="75" />
 					</span>
 				</Link>
-				{/* <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarColor02" aria-controls="navbarColor02" aria-expanded="false" aria-label="Toggle navigation">
-					<span className="navbar-toggler-icon"></span>
-				</button> */}
+				<Link className="nav-link" to="/history">History</Link>
 				{/* <ul className="navbar-nav me-auto">
 					<li className="nav-item">
 						<Link className="nav-link active" to="#">Home

@@ -38,6 +38,7 @@ class Bookings(db.Model):
     col = db.Column(db.Integer)
     row = db.Column(db.Integer)
     sales = db.relationship('Sales', backref='booking_sales', lazy=True)
+    qr_code = db.Column(db.Text, nullable=True)
     
 
     def __repr__(self):
