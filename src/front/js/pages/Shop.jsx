@@ -21,13 +21,7 @@ export const Shop = () => {
     };
 
     const handleCheckout = () => {
-        const cartData = {
-            booking_id: store.showCart.bookings[0]?.booking_id
-        }  
-        console.log(cartData);
-        
-        actions.checkout(cartData)
-        navigate('/')
+        navigate('/shopping-cart')
     }
 
     return !store.isLogged ? <Login /> : (
@@ -116,7 +110,7 @@ export const Shop = () => {
                                     <span className="text-secondary">{store.showCart.message || "No snacks selected."}</span>
                                 )}
 
-                                <button type="button" className="btn btn-danger mt-5" onClick={handleCheckout}>Finalizar compra</button>
+                                <button type="button" className="btn btn-danger mt-5" onClick={handleCheckout}>Checkout</button>
                                 
                             </Card.Body>
                         </>

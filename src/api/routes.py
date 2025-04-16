@@ -3,7 +3,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 """
 from flask import Flask, request, jsonify, url_for, Blueprint
 from api.utils import generate_sitemap, APIException
-from api.models import db, Users, Bookings, CinemaRooms, ShowTimes, Movies, Sales, SalesLines, Products, Cart, CartItem
+from api.models import db, Users, Bookings, CinemaRooms, ShowTimes, Movies, Sales, SalesLines, Products, Payments, Cart, CartItem
 from flask_cors import CORS
 import requests
 import os
@@ -12,13 +12,24 @@ from flask_jwt_extended import jwt_required
 from flask_jwt_extended import get_jwt_identity
 from flask_jwt_extended import get_jwt
 from datetime import datetime, timedelta
+import Monei
+from Monei import MoneiClient
+from flask_cors import cross_origin
+import json
 import qrcode
 import io
 import base64
 
 
+
+APP_HOST = os.getenv("APP_HOST")
+
 api = Blueprint('api', __name__)
 CORS(api)  # Allow CORS requests to this API
+
+MONEI_BASE_URL = os.getenv("MONEI_BASE_URL")
+api_key = os.getenv('MONEI_API_KEY')
+monei_client = MoneiClient(api_key)
 
 
 @api.route('/hello', methods=['POST', 'GET'])
@@ -92,7 +103,6 @@ def get_movie_details(movie_id):
 
     response_body["message"] = "Movie details"
     response_body["result"] = movie.serialize()
-
     return jsonify(response_body), 200 
 
 
@@ -126,12 +136,8 @@ def add_to_cart():
         db.session.commit()        
 
     # Verificar si el producto ya está en el carrito
-    cart_item = db.session.execute(
-        db.select(CartItem).where(
-            CartItem.cart_id == cart.id,
-            CartItem.product_id == product_id
-        )
-    ).scalar()
+    cart_item = db.session.execute(db.select(CartItem)
+                                   .where(CartItem.cart_id == cart.id, CartItem.product_id == product_id)).scalar()
 
     if cart_item:
         cart_item.quantity += quantity
@@ -211,37 +217,21 @@ def book_ticket():
     return jsonify(response_body), 200
 
 
-@api.route('/cart/clear', methods=['DELETE'])
-@jwt_required()
+@api.route('/api/cart/clear', methods=['DELETE'])
+@cross_origin(origins="*")
 def clear_cart():
     current_user_email = get_jwt_identity()
-    
     user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
 
-    if not user:
-        return {"message": "User not found"}, 404
-    
     cart = db.session.execute(db.select(Cart).where(Cart.user_id == user.id)).scalar()
 
     if not cart:
-        return {"message": "Cart not found"}, 404
-    
-    for item in cart.items:
-        if item.booking_id:
-            booking = item.booking_to_cart
-            if booking and not booking.sales:
-                showtime = booking.showtime_to
-                showtime.unreserve_seat(booking.row, booking.col)
-                db.session.delete(booking)
-        db.session.delete(item)
+        return jsonify({"message": "No cart found for this user"}), 200  #  Cambiamos el código de respuesta a 200 en lugar de 404
 
-
-    db.session.execute(db.delete(CartItem).where(CartItem.cart_id == cart.id))
-    
     db.session.delete(cart)
     db.session.commit()
 
-    return {"message": "Cart cleared successfully"}, 200
+    return jsonify({"message": "Cart cleared successfully"}), 200
 
 
 @api.route('/cart', methods=['GET'])
@@ -279,8 +269,18 @@ def view_cart():
 @api.route('/store-cinema', methods=['POST'])
 @jwt_required()
 def store_cinema():
+    data = request.json
+    booking_ids = data.get('booking_ids')
+
+        # Obtener usuario
     current_user_email = get_jwt_identity()
     user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
+
+        # Validar si `booking_ids` está vacío
+    if not booking_ids:
+        print("Error: `booking_ids` está vacío.")  #  Diagnóstico
+        return jsonify({"message": "No valid bookings found"}), 400
+
 
     if request.method == 'POST':
         data = request.json
@@ -291,16 +291,28 @@ def store_cinema():
             Bookings.user_id == user.id)
         ).scalar()
 
-        if not bookings or bookings.showtime_to.date_time < datetime.utcnow():
-            return {"message": "The reservation does not exist or has expired"}, 400
 
+        # Obtener carrito
         cart = db.session.execute(db.select(Cart).where(Cart.user_id == user.id)).scalar()
         if not cart or not cart.items:
-            return {"message": "Your cart is empty"}, 400
+            return jsonify({"message": "Your cart is empty"}), 400
 
         total = 0
         products_detail = []
         has_valid_items = False
+
+        # Crear la venta
+        """ new_sale = Sales(user_id=user.id, total=total) """
+        """ db.session.add(new_sale) """
+
+
+        """ # Validamos que `cart.items` tiene contenido válido
+        for item in cart.items:
+        if not item.serialize():
+            print("Error: `item.serialize()` está vacío.")  #  Diagnóstico
+            return jsonify({"message": "Invalid cart data"}), 422
+
+        print("Guardando SalesLines - Producto/Reserva:", item.serialize()) """
 
         new_sale = Sales(user_id=user.id, total=total)
 
@@ -320,6 +332,7 @@ def store_cinema():
                 db.session.add(new_sale_line)
                 products_detail.append(item.serialize())
 
+
             elif item.booking_to_cart:
                 booking = item.booking_to_cart
                 subtotal = booking.booking_price
@@ -332,6 +345,7 @@ def store_cinema():
                     unit_price=booking.booking_price,
                     sale=new_sale
                 )
+            
                 db.session.add(new_sale_line)
 
                 # Genera el código QR
@@ -351,9 +365,10 @@ def store_cinema():
         db.session.add(new_sale_line)
         bookings.sales.append(new_sale)
 
+        # Vaciar el carrito
         for item in cart.items:
             db.session.delete(item)
-
+    
         db.session.commit()
 
         return {
@@ -361,7 +376,6 @@ def store_cinema():
             "results": products_detail,
             "total": total
         }, 201
-
 
 @api.route('/showtime/<int:showtime_id>/seats', methods=['GET'])
 def get_showtime_seats(showtime_id):
@@ -424,6 +438,175 @@ def showtime_details(movie_id):
         return jsonify({'message': 'Showtime not found'}), 404
 
     response_body['showtime'] = [showtime.serialize() for showtime in showtimes]
+    return jsonify(response_body), 200
+
+
+@api.route('/create-payment', methods=['POST'])
+@jwt_required()
+def create_payment():
+    response_body = {}
+    current_user_email = get_jwt_identity()
+    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
+    
+    if not user:
+        return jsonify({"message": "User not found"}), 400
+
+    data = request.json
+    booking_id = data.get('booking_id')
+
+    print("Debug - Booking ID recibido en create-payment:", booking_id)
+
+    response_body['bookings'] = user_bookings(user.id)
+    response_body['bookings_ids'] = [b['id'] for b in response_body['bookings']]
+
+    cart = db.session.execute(db.select(Cart).where(Cart.user_id == user.id)).scalar()
+    if not cart:
+        response_body['message'] = "Your shopping cart is empty"
+        return response_body, 200
+
+    items = db.session.execute(db.select(CartItem).where(CartItem.cart_id == cart.id)).scalars().all()
+    total = sum(item.serialize()["subtotal"] for item in items)
+
+    response_body['total'] = total
+
+    payment_data = {
+        "amount": int(total * 100),
+        "currency": "EUR",
+        "customer_email": user.email,
+        "order_id": f"{user.id}-{'-'.join(str(b['id']) for b in response_body['bookings'])}-{datetime.utcnow().timestamp()}",
+        "description": "Payed at CinemaCenter WebApp",
+        "callbackUrl": f"{APP_HOST}/payment-success",
+        "completeUrl": f"{APP_HOST}/payment-success",
+        "return_url": f"{APP_HOST}/payment-success",
+        "cancel_url": f"{APP_HOST}/"
+    }
+
+    payment_response = monei_client.payments.create(payment_data)
+
+    new_payment = Payments(
+        payment_id=payment_response.get("id"),
+        amount=payment_response.get("amount"),
+        currency="EUR",
+        status=str(payment_response.get("status", "FAILED")),
+        description=payment_response.get("description", ""),
+        payment_method=str(payment_response.get("payment_method", {}).get("method", "")),  
+        created_at=payment_response.get("created_at"),
+        user_id=user.id
+    )
+
+    db.session.add(new_payment)
+    db.session.commit()
+
+    response_body["message"] = "Payment initiated successfully."
+    response_body["your_payment_link"] = payment_response.get("next_action", {}).get("redirect_url", "No redirect URL provided")
+    response_body["payment_id"] = new_payment.payment_id
+
+    print("Debug - Datos enviados en response_body:", json.dumps(response_body))
+
+    return response_body, 201 if new_payment.status in ["PENDING", "SUCCESS"] else 200
+
+
+@api.route('/payment-status/<payment_id>', methods=['GET'])
+@jwt_required()
+def check_payment_status(payment_id):
+    response_body = {}
+    current_user_email = get_jwt_identity()
+    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
+    if not user:
+        response_body['message'] = 'User not found'
+        return response_body, 400
+
+    payment = db.session.execute(db.select(Payments).where(Payments.payment_id == payment_id, Payments.user_id == user.id)).scalar()
+    if not payment:
+        response_body["message"] = "Payment not found"
+        return response_body, 404  
+
+    payment_response = monei_client.payments.get(payment_id)  
+
+    new_status = str(payment_response.get("status", payment.status))  
+    new_method = str(payment_response.get("payment_method", {}).get("method", payment.payment_method)) 
+    if payment.status != new_status or payment.payment_method != new_method:
+        payment.status = new_status
+        payment.payment_method = new_method  
+        db.session.commit()
+    payment_method = payment_response.get("payment_method", {})
+    method_pay = str(payment_method.get("method", "Unknown"))  
+    card_brand = str(payment_method.get("card", {}).get("brand", "Unknown"))  
+    card_last4 = str(payment_method.get("card", {}).get("last4", "****"))  
+
+    response_body.update({
+    "message": "Payment status checked and updated",
+    "description": payment_response.get("description", ""),
+    "amount": payment_response.get("amount", ""),
+    "currency": payment_response.get("currency", ""),
+    "id": payment_response.get("id", ""),
+    "payment_method": method_pay,  
+    "card_brand": card_brand,  
+    "card_last4": card_last4,  
+    "status": str(payment.status),
+    "status_code": payment_response.get("status_code", ""),
+    "status_message": payment_response.get("status_message", "")
+    })
+
+    return jsonify(response_body), 200
+
+
+@api.route('/user-transactions', methods=['GET'])
+@jwt_required()
+@cross_origin(origins="*")  
+def get_user_transactions():
+    response_body = {}
+    current_user_email = get_jwt_identity()
+    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
+
+    if not user:
+        response_body['message'] = 'User not found'
+        return jsonify(response_body), 400
+
+    #  Verificar manualmente en la BD si hay transacciones con payment_id
+    query = db.session.execute(
+        db.text("SELECT id, user_id, payment_id FROM sales WHERE user_id = :user_id"),
+        {"user_id": user.id}
+    )
+    sales_data = query.fetchall()
+
+    print(f" SQL Sales for {current_user_email}: {sales_data}")  
+
+    
+    sales = db.session.execute(db.select(Sales).where(Sales.user_id == user.id).order_by(Sales.sale_date.desc())).scalars()
+    for sale in sales:
+        print(f" Sale {sale.id}: payment_id={sale.payment_id}, payment_to={sale.payment_to}")  
+
+    transactions_detail = []
+
+    for sale in sales:
+        payment = sale.payment_to
+
+        #  Si payment_id existe pero `payment_to` es None, actualizamos la relación
+        if sale.payment_id and not payment:
+            payment = db.session.execute(db.select(Payments).where(Payments.payment_id == sale.payment_id)).scalar()
+            sale.payment_to = payment
+            db.session.commit()
+
+        if not payment:
+            print(f" Advertencia: `payment_to` es None para sale_id {sale.id} - Ignorando esta venta.")
+            continue  
+
+        transactions_detail.append({
+            "payment_id": payment.payment_id,
+            "status": payment.status,
+            "amount": sale.total,
+            "currency": payment.currency,
+            "description": payment.description,
+            "payment_method": payment.payment_method,
+            "created_at": payment.created_at if payment else int(sale.sale_date.timestamp()),
+        })
+
+    response_body["message"] = "Payment History"
+    response_body["transactions"] = transactions_detail
+
+    print(f" Response Body: {response_body}")  # Verificamos la salida final
+
     return jsonify(response_body), 200
 
 
@@ -546,17 +729,17 @@ def create_cinema_menus():
 #     return [sale.serialize() for sale in sales]
 
 
-# def user_bookings(user_id):
+def user_bookings(user_id):
 
-#     bookings = db.session.execute(
-#         db.select(Bookings)
-#         .join(ShowTimes, Bookings.showtime_id == ShowTimes.id)
-#         .join(Movies, ShowTimes.movie_id == Movies.id)
-#         .join(CinemaRooms, ShowTimes.cinema_room_id == CinemaRooms.id)
-#         .where(Bookings.user_id == user_id)
-#     ).scalars()
+     bookings = db.session.execute(
+         db.select(Bookings)
+         .join(ShowTimes, Bookings.showtime_id == ShowTimes.id)
+        .join(Movies, ShowTimes.movie_id == Movies.id)
+         .join(CinemaRooms, ShowTimes.cinema_room_id == CinemaRooms.id)
+         .where(Bookings.user_id == user_id)
+     ).scalars()
 
-#     return [ booking.user_bookings() for booking in bookings]
+     return [ booking.user_bookings() for booking in bookings]
 
 
 def create_showtimes ():

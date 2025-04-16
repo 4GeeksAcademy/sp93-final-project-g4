@@ -21,6 +21,7 @@ typing-extensions = "*"
 flask-jwt-extended = "*"
 wtforms = "==3.1.2"
 requests = "*"
+monei = "*"
 qrcode = {extras = ["pil"], version = "*"}
 
 [requires]

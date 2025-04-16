@@ -1,11 +1,38 @@
-import React, { use, useContext, useState } from "react";
+import React, { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Context } from "../store/appContext.js";
 import "./../../styles/index.css"
 import { Login } from "./Login.jsx";
 
 export const ShoppingCart = () => {
-    const { store } = useContext(Context)
+
+    const { store, actions } = useContext(Context)
+    const navigate = useNavigate()
+
+    const handleCheckout = async () => {
+        const data = store.showCart;
+        if (!data || typeof data !== "object" || !data.bookings) {
+            console.error(" Error: `data` no está correctamente estructurado:", data);
+            return;
+        }
+        /* console.log("Este es el data del checkout:", data); */
+        // Inspeccionamos la estructura exacta de `bookings`
+        /* console.log(" Estructura real de bookings:", data.bookings); */
+        // Verifica si los objetos dentro de `bookings` tienen `id`
+        data.bookings.forEach((booking, index) => {
+            /* console.log(` Booking [${index}] -> `, booking); */
+        });
+        const bookingsIds = Array.isArray(data.bookings) ? data.bookings.map(b => b.booking_id) : [];
+        /* console.log("Aquí los Ids de las reservas:", bookingsIds); */
+        const checkoutCart = {
+            bookings_ids: bookingsIds,
+            products: data.products || [],
+            total: data.total || 0
+        };
+        /* console.log("Estado de checkoutCart después de actualizar:", checkoutCart); */
+        await actions.checkout(checkoutCart)
+        window.open(store.payment_link, "_blank", "noopener,noreferrer")
+    };
 
     return !store.isLogged ? <Login /> : (
         <div>
@@ -27,6 +54,7 @@ export const ShoppingCart = () => {
                                             />
                                         </div>
                                         <div className="col-md-8">
+
                                             <div className="card-body">
                                                 <div className="d-flex justify-content-around">
                                                     <div className="me-5">
@@ -39,6 +67,7 @@ export const ShoppingCart = () => {
                                                             <p className="card-text">Price € {cartProduct.booking_price}</p>
                                                             <button type="button" className="btn-close text-bg-secondary ms-5" aria-label="Close"></button>
                                                         </div>
+
                                                         <p className="card-text">Subtotal Products</p>
                                                         <p className="card-text">€ {cartProduct.booking_price}</p>
                                                     </div>
@@ -55,9 +84,7 @@ export const ShoppingCart = () => {
                     </div>
                 </div>
             </div>
-    
             <hr />
-    
             <div className="mb-3">
                 <div className="row g-0">
                     <div className="col-md-12">
@@ -105,8 +132,29 @@ export const ShoppingCart = () => {
                         }
                     </div>
                 </div>
+                <div className="d-flex justify-content-end">
+                    <button type="button" className="btn btn-danger me-5 " onClick={handleCheckout}>Finalizar compra</button>
+                </div>
             </div>
         </div>
     )
-    
 }
+
+
+
+
+
+/* <div className="col">
+                        <img
+                            src={`https://image.tmdb.org/t/p/original${store.showCart.bookings[0].movie_image}`}
+                            className="img-fluid rounded-start"
+                            alt="Movie Poster"
+                            style={{ width: '18rem', height: 'auto' }}
+                        />
+                    </div>
+                    <div className="col-md-8">
+                        <div className="">
+                            {
+                                store.showCart.bookings !== undefined ? (
+                                    store.showCart.bookings.map((cartProduct) => (
+                                        <div key={cartProduct.bookings_id}> */

@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timedelta
 import json 
 
 db = SQLAlchemy()
@@ -46,6 +46,7 @@ class Bookings(db.Model):
     
     def user_bookings(self):
         return {
+            "id": self.id,
             "booking_date": self.booking_date.strftime("%d/%m/%Y %H:%M"),
             "row": self.row,
             "col": self.col,
@@ -61,7 +62,7 @@ class CinemaRooms(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
     capacity = db.Column(db.Integer, nullable=False)
-    cinema_col = db.Column(db.Integer, default=5)
+    cinema_col = db.Column(db.Integer, default=10)
     cinema_row = db.Column(db.Integer, default=5)
 
     def __repr__(self):
@@ -83,7 +84,7 @@ class ShowTimes(db.Model):
     movie_to = db.relationship('Movies', foreign_keys=[movie_id], backref=db.backref('showtime_movie'), lazy='select')
     cinema_room_id = db.Column(db.Integer, db.ForeignKey('cinema_rooms.id'), nullable=False)
     cinema_room_to = db.relationship('CinemaRooms', foreign_keys=[cinema_room_id], backref=db.backref('showtime_room'), lazy='select')
-    available = db.Column(db.Integer, default=25)
+    available = db.Column(db.Integer, default=50)
 
     reserved_seats = db.Column(db.Text, default="[]")
 
@@ -166,16 +167,21 @@ class Sales(db.Model):
     user_to = db.relationship('Users', foreign_keys=[user_id], backref=db.backref('sales'), lazy='select')
     sales_lines_to = db.relationship('SalesLines', backref='sale', lazy="select")
     booking_id = db.Column(db.Integer, db.ForeignKey('bookings.id'), nullable=True)
+    payment_id = db.Column(db.String, db.ForeignKey('payments.payment_id'), nullable=True)
+    payment_to = db.relationship('Payments', primaryjoin="Sales.payment_id == Payments.payment_id", backref=db.backref('sales', lazy='select'))
 
     def __repr__(self):
-        return f'<Sales: Sale Date{self.sale_date}'
+        return f'<Sales id:{self.id}, user:{self.user_id}, total:{self.total}, payment_id:{self.payment_id}>'
     
     def serialize(self):
-        return{'sale_id': self.id,
-                'sale_date': self.sale_date.strftime("%d/%m/%Y %H:%M"),
-                'sales_lines': [sale_line.serialize() for sale_line in self.sales_lines_to],
-                'discount': self.discount,
-                'total': self.total,}
+        return {"id": self.id,
+                "sale_date": self.sale_date.strftime("%d/%m/%Y %H:%M"),
+                "total": self.total,
+                "discount": self.discount,
+                "user_id": self.user_id,
+                "booking_id": self.booking_id,
+                "payment_id": self.payment_id
+        }
 
 
 class SalesLines(db.Model):
@@ -264,3 +270,30 @@ class CartItem(db.Model):
                 "row_reserved": self.booking_to_cart.row,
                 "subtotal": self.booking_to_cart.booking_price
             }
+
+
+class Payments(db.Model):
+    id = db.Column(db.Integer, primary_key=True)                                    # ID único del pago  
+    payment_id = db.Column(db.String, unique=True, nullable=False)                  # ID del pago en MONEI  
+    amount = db.Column(db.Float, nullable=True)                                      
+    currency = db.Column(db.String, nullable=False, default="EUR")                    
+    status = db.Column(db.String, nullable=False)                                   # Estado del pago (ej. "PENDING", "FAILED", "SUCCEED")  
+    description = db.Column(db.String, nullable=False)                                
+    payment_method = db.Column(db.String, nullable=True)                              
+    created_at = db.Column(db.Integer, nullable=False)                                
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)        
+    user_to = db.relationship('Users', foreign_keys=[user_id], backref=db.backref('payments', lazy='select'))  
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "payment_id": self.payment_id,
+            "amount": self.amount,
+            "currency": self.currency,
+            "status": self.status,
+            "description": self.description,
+            "payment_method": self.payment_method,
+            "created_at": self.created_at,
+            "user_email": self.user_to.email
+        }
+    

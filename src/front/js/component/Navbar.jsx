@@ -35,10 +35,7 @@ export const Navbar = () => {
 		navigate("/login")
 	}
 
-	const handleCart = () => {
-		navigate("/shopping-cart")
-	}
-
+	
 	return (
 		<nav className="navbar navbar-expand-lg bg-dark" data-bs-theme="dark">
 			<div className="container-fluid">
@@ -96,8 +93,8 @@ export const Navbar = () => {
 										<span className="p-2">	Points: {user.points} </span>
 									</div>
 									<Dropdown.Divider />
-									<Dropdown.Item onClick={handleShow} className="text-black p-2"> Edit Profile </Dropdown.Item>
-									<Dropdown.Item onClick={handleLogOut} className="text-danger p-2"> Logout </Dropdown.Item>
+									<Dropdown.Item onClick={handleShow} className="text-center text-black p-2"> Edit Profile </Dropdown.Item>
+									<Dropdown.Item onClick={handleLogOut} className="text-center text-danger p-2"> Logout </Dropdown.Item>
 								</Dropdown.Menu>
 							</Dropdown>
 							<Dropdown >
@@ -105,12 +102,23 @@ export const Navbar = () => {
 									<i className="fa-solid fa-cart-shopping"></i>
 								</Dropdown.Toggle>
 								<Dropdown.Menu>
-									<div>
-										<span>	Username: {user.username} </span>
+									<div >
+										<span className="text-center p-2">	Username: {user.username} </span>
 									</div>
 									<Dropdown.Divider />
-									{/* <Dropdown.Item onClick={handleShow} className="text-black"> Edit Profile </Dropdown.Item> */}
-									<Dropdown.Item onClick={handleCart} className="text-succes"> GO! </Dropdown.Item>
+									<Dropdown.Item onClick={() =>{navigate('/shopping-cart')}} className="d-flex justify-content-center text-succes p-2"> Checkout </Dropdown.Item>
+								</Dropdown.Menu>
+							</Dropdown>
+							<Dropdown >
+								<Dropdown.Toggle className="btn-dark border-0" id="dropdown-basic">
+									<i className="fa-solid fa-cart-shopping"></i>
+								</Dropdown.Toggle>
+								<Dropdown.Menu>
+									<div className="d-flex justify-content-center">
+										<span className="text-center p-2">	Purchase History </span>
+									</div>
+									<Dropdown.Divider />
+									<Dropdown.Item onClick={() =>{navigate('/transactions-history')}} className="text-succes p-2 text-center"> Transactions </Dropdown.Item>
 								</Dropdown.Menu>
 							</Dropdown>
 						</div>
