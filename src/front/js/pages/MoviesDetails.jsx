@@ -37,7 +37,7 @@ export const MoviesDetails = () => {
                     {allDays.length  > 0 ? (
                         allDays.map((day) => (
                             <button
-                                key={day} onClick={() => setSelectedDay(day)} className={`btn mx-2 mb-2 &{selectDay === day ? 'btn-ligth' : 'btn-outline-ligth'}`} style={{ borderRadius: "20PX", padding: "10px 20px" }}
+                                key={day} onClick={() => setSelectedDay(day)} className={`btn mx-2 mb-2 ${selectedDay === day ? 'btn-ligth' : 'btn-outline-ligth'}`} style={{ borderRadius: "20PX", padding: "10px 20px" }}
                             >
                                 {day}
                             </button>
@@ -145,7 +145,7 @@ export const MoviesDetails = () => {
                             width="720"
                             height="405"
                             src={`https://www.youtube.com/embed/${store.movieDetails.trailer}`}
-                            title="YouTube video player"
+                            title="YouTube video trailer"
                             frameBorder="0"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
@@ -156,7 +156,7 @@ export const MoviesDetails = () => {
                     <div className="text-center">
                         <p className="text-light">No trailer available</p>
                         <img
-                            src="https://cdn-icons-png.flaticon.com/512/702/702797.png"
+                            src="https://cdn-icons-png.flaticon.com/128/1466/1466122.png"
                             alt="No trailer available"
                             style={{ width: '150px', height: 'auto', marginTop: '0.7' }}
                         />
