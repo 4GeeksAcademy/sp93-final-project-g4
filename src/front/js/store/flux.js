@@ -55,7 +55,8 @@ const getState = ({ getStore, getActions, setStore }) => {
 					return;
 				}
 				const data = await response.json()
-				setStore({ movieDetails: { ...data.result, movieId } })
+				console.log("Detalles de la peli:", data.result)
+				setStore({movieDetails: {...data.result, movieId}})
 			},
 			register: async (newUser) => {
 				const response = await fetch(`${process.env.BACKEND_URL}/api/register`,
@@ -116,6 +117,12 @@ const getState = ({ getStore, getActions, setStore }) => {
 				)
 				if (!response.ok) {
 					console.log('Error for loggin', response.status, response.statusText)
+					setStore({
+						alert: { visible: true, text: "Error for login!", background: "danger" }
+					})
+					setTimeout(() => {
+						setStore({ alert: { visible: false, text: "", background: "" } });
+					}, 2000)
 				}
 
 				const data = await response.json()
@@ -314,9 +321,18 @@ const getState = ({ getStore, getActions, setStore }) => {
 					checkoutCart: {  
 						bookings_ids: bookingIds, // Ahora `checkoutCart` tendrá los booking_ids correctos  
 						products: data.products,
-						total: data.total}
+						total: data.total},
+					alert: { visible: true, text: `${data.message}`, background: "success" }
 				});
 				/* console.log('Estado de checkoutCart después de actualizar:', getStore().checkoutCart); */
+				setStore({
+					checkoutCart: data.results,
+				})
+				setTimeout(() => {
+					setStore({ alert: { visible: false, text: "", background: "" } });
+				}, 2000);
+
+				getActions().clearCart()
 			},
 			payment_status: async (id) => {
 				const token = localStorage.getItem('token')
@@ -432,7 +448,31 @@ const getState = ({ getStore, getActions, setStore }) => {
 				/* console.log("Transacciones del usuario:", data); */
 			
 				setStore({ payment_body: data });  // Guardamos las transacciones en el store para poder usarlas en la UI
-			}
+			},
+			/* deleteCart: async () => {
+				const token = localStorage.getItem('token')
+				const response = await fetch(`${process.env.BACKEND_URL}/api/cart/clear`, 
+					{
+						method: 'DELETE',
+						headers: {
+							"Authorization" : `Bearer ${token}`
+						},
+					})
+
+					if(!response.ok) {
+						console.log("Error", response.status, response.statusText);
+						return;
+					}
+	
+					const data = await response.json()
+					setStore({
+						showCart: [],
+						alert: { visible: true, text: `${data.message}`, background: "success" }
+					})
+					setTimeout(() => {
+						setStore({ alert: { visible: false, text: "", background: "" } });
+					}, 2000);
+			}, */
 		}
 	}
 };

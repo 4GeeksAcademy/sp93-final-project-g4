@@ -7,7 +7,6 @@ import ScrollToTop from "./component/ScrollToTop.jsx";
 import { Footer } from "./component/Footer.jsx";
 import { Navbar } from "./component/Navbar.jsx";
 import { Alert } from "./component/Alert.jsx";
-import { ProtectedRoute } from "./component/ProtectedRoute.jsx";
 // Custom Pages or Views
 import { Home } from "./pages/Home.jsx";
 import { Error404 } from "./pages/Error404.jsx";
@@ -17,8 +16,12 @@ import { BookingSesion } from "./pages/BookingSesion.jsx";
 import { MoviesDetails } from "./pages/MoviesDetails.jsx";
 import { Shop } from "./pages/Shop.jsx";
 import { ShoppingCart } from "./pages/ShoppingCart.jsx";
+
 import { PaymentPage } from "./pages/PaymentPage.jsx";
 import { TransactionsPage } from "./pages/TransactionsPage.jsx";
+
+import { History } from "./pages/History.jsx";
+
 
 
 
@@ -45,6 +48,7 @@ const Layout = () => {
                         <Route element={<ShoppingCart />} path="/shopping-cart" />
                         <Route element={<PaymentPage />} path="/payment-success" />
                         <Route element={<TransactionsPage />} path="/transactions-history" />
+                        <Route element={<History />} path="/history" />
                         <Route element={<Error404 />} path='*' />
                     </Routes>
                     <Footer />

@@ -16,6 +16,10 @@ import Monei
 from Monei import MoneiClient
 from flask_cors import cross_origin
 import json
+import qrcode
+import io
+import base64
+
 
 
 APP_HOST = os.getenv("APP_HOST")
@@ -34,6 +38,13 @@ def handle_hello():
     response_body['message'] = "Hello! I'm a message that came from the backend, check the network tab on the google inspector and you will see the GET request"
     return response_body, 200
 
+def generate_qr_code(data: str) -> str:
+    qr = qrcode.make(data)
+    buffer = io.BytesIO()
+    qr.save(buffer, format="PNG")
+    buffer.seek(0)
+    img_str = base64.b64encode(buffer.read()).decode("utf-8")
+    return f"data:image/png;base64,{img_str}"
 
 @api.route('/login', methods=["POST"])
 def login():
@@ -77,17 +88,6 @@ def register():
     response_body['message'] = 'New User Created'
     response_body['access_token'] = access_token
     response_body['results'] = user
-    return response_body, 200
-
-
-@api.route('/movies', methods=['GET'])
-def movies():
-    import_movies()
-    # create_showtimes()
-    response_body = {}
-    movies = db.session.execute(db.select(Movies)).scalars()
-    response_body["message"] = "List of movies"
-    response_body["results"] = [movie.serialize() for movie in movies]
     return response_body, 200
 
 
@@ -272,90 +272,110 @@ def store_cinema():
     data = request.json
     booking_ids = data.get('booking_ids')
 
-    # Obtener usuario
+        # Obtener usuario
     current_user_email = get_jwt_identity()
     user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
 
-    print("Creando nueva venta para el usuario:", user.id)
-    print("Booking IDs enviados:", booking_ids)
-
-    # Validar si `booking_ids` está vacío
+        # Validar si `booking_ids` está vacío
     if not booking_ids:
-        print("Error: `booking_ids` está vacío.")  # 🆕 Diagnóstico
+        print("Error: `booking_ids` está vacío.")  #  Diagnóstico
         return jsonify({"message": "No valid bookings found"}), 400
 
-    # Obtener carrito
-    cart = db.session.execute(db.select(Cart).where(Cart.user_id == user.id)).scalar()
-    if not cart or not cart.items:
-        print("Error: Carrito vacío.")  # 🆕 Diagnóstico
-        return jsonify({"message": "Your cart is empty"}), 400
 
-    print("Carrito antes de procesar venta:", cart.items)  # 🆕 Diagnóstico
+    if request.method == 'POST':
+        data = request.json
+        booking_id = data.get('booking_id')
 
-    total = 0
-    products_detail = []
-    has_valid_items = False
+        bookings = db.session.execute(db.select(Bookings).where(
+            Bookings.id == booking_id, 
+            Bookings.user_id == user.id)
+        ).scalar()
 
-    # Crear la venta
-    new_sale = Sales(user_id=user.id, total=total)
-    db.session.add(new_sale)
 
-    # Validamos que `cart.items` tiene contenido válido
-    for item in cart.items:
+        # Obtener carrito
+        cart = db.session.execute(db.select(Cart).where(Cart.user_id == user.id)).scalar()
+        if not cart or not cart.items:
+            return jsonify({"message": "Your cart is empty"}), 400
+
+        total = 0
+        products_detail = []
+        has_valid_items = False
+
+        # Crear la venta
+        """ new_sale = Sales(user_id=user.id, total=total) """
+        """ db.session.add(new_sale) """
+
+
+        """ # Validamos que `cart.items` tiene contenido válido
+        for item in cart.items:
         if not item.serialize():
-            print("Error: `item.serialize()` está vacío.")  # 🆕 Diagnóstico
+            print("Error: `item.serialize()` está vacío.")  #  Diagnóstico
             return jsonify({"message": "Invalid cart data"}), 422
 
-        print("Guardando SalesLines - Producto/Reserva:", item.serialize())
+        print("Guardando SalesLines - Producto/Reserva:", item.serialize()) """
 
-        if item.product_to_cart:
-            product = item.product_to_cart
-            subtotal = item.quantity * product.base_price
-            total += subtotal
-            has_valid_items = True
+        new_sale = Sales(user_id=user.id, total=total)
 
-            new_sale_line = SalesLines(
-                product_id=product.id,
-                quantity=item.quantity,
-                unit_price=product.base_price,
-                sale=new_sale
-            )
-            db.session.add(new_sale_line)
-            products_detail.append(item.serialize())
+        for item in cart.items:
+            if item.product_to_cart:
+                product = item.product_to_cart
+                subtotal = item.quantity * product.base_price
+                total += subtotal
+                has_valid_items = True
 
-        elif item.booking_to_cart:
-            booking = item.booking_to_cart
-            subtotal = booking.booking_price
-            total += subtotal
-            has_valid_items = True
+                new_sale_line = SalesLines(
+                    product_id=product.id,
+                    quantity=item.quantity,
+                    unit_price=product.base_price,
+                    sale=new_sale
+                )
+                db.session.add(new_sale_line)
+                products_detail.append(item.serialize())
 
-            new_sale_line = SalesLines(
-                booking_id=booking.id,
-                quantity=1,
-                unit_price=booking.booking_price,
-                sale=new_sale
-            )
-            db.session.add(new_sale_line)
-            products_detail.append(item.serialize())
 
-    if not has_valid_items:
-        print("Error: No hay ítems válidos para la venta.")  # 🆕 Diagnóstico
-        return jsonify({"message": "You don't have valid items to buy"}), 400
+            elif item.booking_to_cart:
+                booking = item.booking_to_cart
+                subtotal = booking.booking_price
+                total += subtotal
+                has_valid_items = True
 
-    # Vaciar el carrito
-    for item in cart.items:
-        db.session.delete(item)
+                new_sale_line = SalesLines(
+                    booking_id=booking.id,
+                    quantity=1,
+                    unit_price=booking.booking_price,
+                    sale=new_sale
+                )
+            
+                db.session.add(new_sale_line)
 
-    db.session.delete(cart)
-    db.session.commit()
+                # Genera el código QR
+                qr_data = f"Booking ID: {booking.id} | Movie: {booking.showtime_to.movie_to.title} | Room: {booking.showtime_to.cinema_room_to.name} | Time: {booking.showtime_to.date_time.strftime('%Y-%m-%d %H:%M')}"
+                qr_image = generate_qr_code(qr_data)
 
-    print("Venta registrada correctamente, ID:", new_sale.id)  # 🆕 Diagnóstico
+                # Guarda el QR en la base de datos
+                booking.qr_code = qr_image
 
-    return {
-        "message": "Your purchase is done! Here's your resume:",
-        "results": products_detail,
-        "total": total
-    }, 201
+                item_serialized = item.serialize()
+                item_serialized["qr_code"] = qr_image
+                products_detail.append(item_serialized)
+
+        if not has_valid_items:
+            return {"message": "You don't have valid items to buy"}, 400
+
+        db.session.add(new_sale_line)
+        bookings.sales.append(new_sale)
+
+        # Vaciar el carrito
+        for item in cart.items:
+            db.session.delete(item)
+    
+        db.session.commit()
+
+        return {
+            "message": "Your purchase is done! Here's your resume:",
+            "results": products_detail,
+            "total": total
+        }, 201
 
 @api.route('/showtime/<int:showtime_id>/seats', methods=['GET'])
 def get_showtime_seats(showtime_id):
@@ -614,6 +634,37 @@ def import_movies():
         release_date = movie.get("release_date", None)
         genre_list = [g["name"] for g in movie_details.get("genres", [])]
         genre = ", ".join(genre_list)
+
+        trailer = None
+        url_videos = f'{os.getenv("URL_TMDB")}/{tmdb_id}/videos'
+        videos_response = requests.get(url_videos, headers=headers)
+
+        if videos_response.status_code == 200:
+            videos_data = videos_response.json()
+            for video in videos_data.get("results", []):
+                print(f"🔹 {video.get('name')} | type: {video.get('type')} | site: {video.get('site')}")
+
+            trailers = sorted([
+            video for video in videos_data.get("results", [])
+            if video["site"] == "YouTube" and video["type"] == "Trailer"
+        ], key=lambda v: (
+            'official' not in v["name"].lower(),
+            'teaser' in v["name"].lower(),
+            len(v["name"])
+        ))
+        if trailers:
+            trailer = trailers[0]["key"]
+
+        url_credits = f'{os.getenv("URL_TMDB")}/{tmdb_id}/credits'
+        credits_response = requests.get(url_credits, headers=headers)
+        credits_data = credits_response.json()
+
+        cast = credits_data.get("cast", [])[:5]
+        actors = ", ".join([actor["name"] for actor in cast])
+
+        crew =credits_data.get("crew", [])
+        director = next((member["name"] for member in crew if member["job"] == "Director"), None)
+
         movie_exist = db.session.execute(db.select(Movies).where(Movies.tmdb_id == tmdb_id)).scalar()
         if not movie_exist:
             new_movie = Movies(
@@ -626,10 +677,27 @@ def import_movies():
                 popularity=popularity,
                 poster_path=poster_path, 
                 release_date=release_date,
-                genre=genre)
+                genre=genre,
+                trailer=trailer,
+                actors=actors,
+                director=director)
             db.session.add(new_movie)
+        else:
+            movie_exist.trailer = trailer
+            movie_exist.actors = actors
+            movie_exist.director = director
 
     db.session.commit()
+
+
+@api.route('/movies', methods=['GET'])
+def movies():
+    import_movies()
+    response_body = {}
+    movies = db.session.execute(db.select(Movies)).scalars()
+    response_body["message"] = "List of movies"
+    response_body["results"] = [movie.serialize() for movie in movies]
+    return response_body, 200
 
 
 def create_cinema_menus():

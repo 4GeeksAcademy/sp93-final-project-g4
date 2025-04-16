@@ -11,20 +11,11 @@ import { Login } from "./Login.jsx";
 export const Shop = () => {
 
     const { store, actions } = useContext(Context)
-    // const [productQuantities, setProductQuantities] = useState({});
-
-    // const handleChangeQuantity = (productId, change) => {
-    //     setProductQuantities({
-    //         ...productQuantities,
-    //         [productId]: Math.max((productQuantities[productId] || 0) + change, 0),
-    //     });
-    // };
     const navigate = useNavigate();
     const handleAddToCart = (productId) => {
-        // const quantity = productQuantities[productId];
         const purchasedProduct = {
             product_id: productId,
-            // quantity: quantity,
+
         };
         actions.addCart(purchasedProduct);
     };
@@ -61,16 +52,6 @@ export const Shop = () => {
 
                                         <div className="mt-4">
                                             <button type="button" className="btn btn-warning" onClick={() => handleAddToCart(p.id)}>Add to cart</button>
-
-                                            {/* <svg style={{cursor: 'pointer'}} onClick={() => handleChangeQuantity(p.id, -1)} xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" className="bi bi-dash-circle" viewBox="0 0 16 16">
-                                                <path d="M8 15A7 7 0 1 1 8 1a 7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
-                                                <path d="M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8" />
-                                            </svg>
-                                            <span style={{ margin: "10px" }}> {productQuantities[p.id] || 0}</span>
-                                            <svg style={{cursor: 'pointer'}} onClick={() => handleChangeQuantity(p.id, 1)} xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" className="bi bi-plus-circle" viewBox="0 0 16 16">
-                                                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
-                                                <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
-                                            </svg> */}
                                         </div>
                                     </div>
                                 </ListGroup.Item>
