@@ -1,7 +1,7 @@
 import os
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
-from .models import db, Users, Bookings, CinemaRooms, ShowTimes, Movies, Sales, SalesLines, Products, Cart, CartItem
+from .models import db, Users, Bookings, CinemaRooms, ShowTimes, Movies, Sales, SalesLines, Products, Cart, CartItem, Payments
 
 def setup_admin(app):
     app.secret_key = os.environ.get('FLASK_APP_KEY', 'sample key')
@@ -18,3 +18,4 @@ def setup_admin(app):
     admin.add_view(ModelView(Products, db.session))
     admin.add_view(ModelView(Cart, db.session))
     admin.add_view(ModelView(CartItem, db.session))
+    admin.add_view(ModelView(Payments, db.session))

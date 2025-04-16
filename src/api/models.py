@@ -45,6 +45,7 @@ class Bookings(db.Model):
     
     def user_bookings(self):
         return {
+            "id": self.id,
             "booking_date": self.booking_date.strftime("%d/%m/%Y %H:%M"),
             "row": self.row,
             "col": self.col,
@@ -60,7 +61,7 @@ class CinemaRooms(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
     capacity = db.Column(db.Integer, nullable=False)
-    cinema_col = db.Column(db.Integer, default=5)
+    cinema_col = db.Column(db.Integer, default=10)
     cinema_row = db.Column(db.Integer, default=5)
 
     def __repr__(self):
@@ -82,7 +83,7 @@ class ShowTimes(db.Model):
     movie_to = db.relationship('Movies', foreign_keys=[movie_id], backref=db.backref('showtime_movie'), lazy='select')
     cinema_room_id = db.Column(db.Integer, db.ForeignKey('cinema_rooms.id'), nullable=False)
     cinema_room_to = db.relationship('CinemaRooms', foreign_keys=[cinema_room_id], backref=db.backref('showtime_room'), lazy='select')
-    available = db.Column(db.Integer, default=25)
+    available = db.Column(db.Integer, default=50)
 
     reserved_seats = db.Column(db.Text, default="[]")
 
@@ -163,7 +164,7 @@ class Sales(db.Model):
     payment_to = db.relationship('Payments', primaryjoin="Sales.payment_id == Payments.payment_id", backref=db.backref('sales', lazy='select'))
 
     def __repr__(self):
-        return f'<<Sales id:{self.id}, user:{self.user_id}, total:{self.total}, payment_id:{self.payment_id}>'
+        return f'<Sales id:{self.id}, user:{self.user_id}, total:{self.total}, payment_id:{self.payment_id}>'
     
     def serialize(self):
         return {"id": self.id,

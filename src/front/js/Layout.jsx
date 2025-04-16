@@ -17,6 +17,8 @@ import { BookingSesion } from "./pages/BookingSesion.jsx";
 import { MoviesDetails } from "./pages/MoviesDetails.jsx";
 import { Shop } from "./pages/Shop.jsx";
 import { ShoppingCart } from "./pages/ShoppingCart.jsx";
+import { PaymentPage } from "./pages/PaymentPage.jsx";
+import { TransactionsPage } from "./pages/TransactionsPage.jsx";
 
 
 
@@ -41,6 +43,8 @@ const Layout = () => {
                         <Route element={<MoviesDetails />} path="/movies-details/:movieId" />
                         <Route element={<Shop />} path="/snack-bar" />
                         <Route element={<ShoppingCart />} path="/shopping-cart" />
+                        <Route element={<PaymentPage />} path="/payment-success" />
+                        <Route element={<TransactionsPage />} path="/transactions-history" />
                         <Route element={<Error404 />} path='*' />
                     </Routes>
                     <Footer />

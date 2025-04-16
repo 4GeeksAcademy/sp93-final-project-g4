@@ -11,12 +11,14 @@ from api.admin import setup_admin
 from api.commands import setup_commands
 from api.models import db
 from flask_jwt_extended import JWTManager
-
+from flask_cors import CORS
 
 
 ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
 static_file_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../public/')
 app = Flask(__name__)
+CORS (app, resources={r"/api/*": {"origins": "*", "methods": ["GET", "POST", "DELETE"]}})
+
 app.url_map.strict_slashes = False
 # Database condiguration
 db_url = os.getenv("DATABASE_URL")

@@ -14,6 +14,8 @@ from flask_jwt_extended import get_jwt
 from datetime import datetime, timedelta
 import Monei
 from Monei import MoneiClient
+from flask_cors import cross_origin
+import json
 
 
 APP_HOST = os.getenv("APP_HOST")
@@ -215,37 +217,21 @@ def book_ticket():
     return jsonify(response_body), 200
 
 
-@api.route('/cart/clear', methods=['DELETE'])
-@jwt_required()
+@api.route('/api/cart/clear', methods=['DELETE'])
+@cross_origin(origins="*")
 def clear_cart():
     current_user_email = get_jwt_identity()
-    
     user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
 
-    if not user:
-        return {"message": "User not found"}, 404
-    
     cart = db.session.execute(db.select(Cart).where(Cart.user_id == user.id)).scalar()
 
     if not cart:
-        return {"message": "Cart not found"}, 404
-    
-    for item in cart.items:
-        if item.booking_id:
-            booking = item.booking_to_cart
-            if booking and not booking.sales:
-                showtime = booking.showtime_to
-                showtime.unreserve_seat(booking.row, booking.col)
-                db.session.delete(booking)
-        db.session.delete(item)
+        return jsonify({"message": "No cart found for this user"}), 200  #  Cambiamos el código de respuesta a 200 en lugar de 404
 
-
-    db.session.execute(db.delete(CartItem).where(CartItem.cart_id == cart.id))
-    
     db.session.delete(cart)
     db.session.commit()
 
-    return {"message": "Cart cleared successfully"}, 200
+    return jsonify({"message": "Cart cleared successfully"}), 200
 
 
 @api.route('/cart', methods=['GET'])
@@ -283,93 +269,93 @@ def view_cart():
 @api.route('/store-cinema', methods=['POST'])
 @jwt_required()
 def store_cinema():
+    data = request.json
+    booking_ids = data.get('booking_ids')
+
+    # Obtener usuario
     current_user_email = get_jwt_identity()
-    user = db.session.execute(db.select(Users).where(Users.email== current_user_email)).scalar()
-    
-    if request.method == 'POST':
-        data = request.json
-        booking_id = data.get('booking_id')
+    user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
 
-        # Obtener usuario
-        current_user_email = get_jwt_identity()
-        user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
+    print("Creando nueva venta para el usuario:", user.id)
+    print("Booking IDs enviados:", booking_ids)
 
-        # Obtener la reserva
-        bookings = db.session.execute(db.select(Bookings).where(
-            Bookings.id == booking_id, 
-            Bookings.user_id == user.id)
-        ).scalar()
+    # Validar si `booking_ids` está vacío
+    if not booking_ids:
+        print("Error: `booking_ids` está vacío.")  # 🆕 Diagnóstico
+        return jsonify({"message": "No valid bookings found"}), 400
 
-        if not bookings or bookings.showtime_to.date_time < datetime.utcnow():
-            return {"message": "The reservation does not exist or has expired"}, 400
+    # Obtener carrito
+    cart = db.session.execute(db.select(Cart).where(Cart.user_id == user.id)).scalar()
+    if not cart or not cart.items:
+        print("Error: Carrito vacío.")  # 🆕 Diagnóstico
+        return jsonify({"message": "Your cart is empty"}), 400
 
-        # Obtener carrito
-        cart = db.session.execute(db.select(Cart).where(Cart.user_id == user.id)).scalar()
-        if cart and cart.items:
-            for item in cart.items:
-                print(item.product_to_cart)
+    print("Carrito antes de procesar venta:", cart.items)  # 🆕 Diagnóstico
 
-        if not cart or not cart.items:
-            return {"message": "Your cart is empty"}, 400
+    total = 0
+    products_detail = []
+    has_valid_items = False
 
-        total = 0
-        products_detail = []
-        has_valid_items = False
+    # Crear la venta
+    new_sale = Sales(user_id=user.id, total=total)
+    db.session.add(new_sale)
 
-        # Crear venta
-        new_sale = Sales(user_id=user.id, total=total)
+    # Validamos que `cart.items` tiene contenido válido
+    for item in cart.items:
+        if not item.serialize():
+            print("Error: `item.serialize()` está vacío.")  # 🆕 Diagnóstico
+            return jsonify({"message": "Invalid cart data"}), 422
 
-        # Crear líneas de venta desde el carrito 
-        for item in cart.items:
-            if item.product_to_cart:
-                product = item.product_to_cart
-                subtotal = item.quantity * product.base_price
-                total += subtotal
-                has_valid_items = True
+        print("Guardando SalesLines - Producto/Reserva:", item.serialize())
 
-                new_sale_line = SalesLines(
-                    product_id=product.id,
-                    quantity=item.quantity,
-                    unit_price=product.base_price,
-                    sale=new_sale
-                )
-                db.session.add(new_sale_line)
-                products_detail.append(item.serialize())
+        if item.product_to_cart:
+            product = item.product_to_cart
+            subtotal = item.quantity * product.base_price
+            total += subtotal
+            has_valid_items = True
 
-            elif item.booking_to_cart:
-                booking = item.booking_to_cart
-                subtotal = booking.booking_price
-                total += subtotal
-                has_valid_items = True
+            new_sale_line = SalesLines(
+                product_id=product.id,
+                quantity=item.quantity,
+                unit_price=product.base_price,
+                sale=new_sale
+            )
+            db.session.add(new_sale_line)
+            products_detail.append(item.serialize())
 
-                new_sale_line = SalesLines(
-                    booking_id=booking.id,
-                    quantity=1,
-                    unit_price=booking.booking_price,
-                    sale=new_sale
-                )
-                db.session.add(new_sale_line)
-                products_detail.append(item.serialize())
+        elif item.booking_to_cart:
+            booking = item.booking_to_cart
+            subtotal = booking.booking_price
+            total += subtotal
+            has_valid_items = True
 
-        if not has_valid_items:
-            return {"message": "You don't have valid items to buy"}, 400
-        
-        db.session.add(new_sale_line)
-        # Asignar la venta a la reserva
-        bookings.sales.append(new_sale)
+            new_sale_line = SalesLines(
+                booking_id=booking.id,
+                quantity=1,
+                unit_price=booking.booking_price,
+                sale=new_sale
+            )
+            db.session.add(new_sale_line)
+            products_detail.append(item.serialize())
 
-        # Vaciar el carrito
-        for item in cart.items:
-            db.session.delete(item)
+    if not has_valid_items:
+        print("Error: No hay ítems válidos para la venta.")  # 🆕 Diagnóstico
+        return jsonify({"message": "You don't have valid items to buy"}), 400
 
-        db.session.commit()
+    # Vaciar el carrito
+    for item in cart.items:
+        db.session.delete(item)
 
-        return {
-            "message": "Your purchase is done! Here's your resume:",
-            "results": products_detail,
-            "total": total
-        }, 201
+    db.session.delete(cart)
+    db.session.commit()
 
+    print("Venta registrada correctamente, ID:", new_sale.id)  # 🆕 Diagnóstico
+
+    return {
+        "message": "Your purchase is done! Here's your resume:",
+        "results": products_detail,
+        "total": total
+    }, 201
 
 @api.route('/showtime/<int:showtime_id>/seats', methods=['GET'])
 def get_showtime_seats(showtime_id):
@@ -441,77 +427,63 @@ def create_payment():
     response_body = {}
     current_user_email = get_jwt_identity()
     user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
+    
     if not user:
         return jsonify({"message": "User not found"}), 400
 
     data = request.json
     booking_id = data.get('booking_id')
-    booking = db.session.execute(db.select(Bookings).where(Bookings.id == booking_id, Bookings.user_id == user.id)).scalar()
-    if not booking:
-        return jsonify({"message": "Booking not found"}), 400
-    
+
+    print("Debug - Booking ID recibido en create-payment:", booking_id)
+
+    response_body['bookings'] = user_bookings(user.id)
+    response_body['bookings_ids'] = [b['id'] for b in response_body['bookings']]
+
     cart = db.session.execute(db.select(Cart).where(Cart.user_id == user.id)).scalar()
     if not cart:
         response_body['message'] = "Your shopping cart is empty"
         return response_body, 200
 
     items = db.session.execute(db.select(CartItem).where(CartItem.cart_id == cart.id)).scalars().all()
+    total = sum(item.serialize()["subtotal"] for item in items)
 
-    products = []
-    bookings = []
-    total = 0
-
-    for item in items:
-        if item.serialize()["type"] == "Product":
-            products.append(item.serialize())
-        elif item.serialize()["type"] == "Booking":
-            bookings.append(item.serialize())
-        total += item.serialize()["subtotal"]
-
-    response_body['products'] = products
-    response_body['bookings'] = bookings
     response_body['total'] = total
-    print("Monto total calculado:", total)
-    
-    payment_data = {                                                                    # Datos para el pago en MONEI
+
+    payment_data = {
         "amount": int(total * 100),
         "currency": "EUR",
         "customer_email": user.email,
-        "order_id": f"{user.id}-{booking.id}-{datetime.utcnow().timestamp()}",
-        "description": "Compra en Cine WebApp",
+        "order_id": f"{user.id}-{'-'.join(str(b['id']) for b in response_body['bookings'])}-{datetime.utcnow().timestamp()}",
+        "description": "Payed at CinemaCenter WebApp",
+        "callbackUrl": f"{APP_HOST}/payment-success",
+        "completeUrl": f"{APP_HOST}/payment-success",
         "return_url": f"{APP_HOST}/payment-success",
         "cancel_url": f"{APP_HOST}/"
     }
-    print("Datos enviados a MONEI:", payment_data)
-    
-    payment_response = monei_client.payments.create(payment_data)                       # Llamada a la API de MONEI
-    
-    payment_id = payment_response.get("id")
-    status = str(payment_response.get("status", "FAILED"))
-    description = payment_response.get("description", "")
-    payment_method = payment_response.get("payment_method", {}).get("method", "")
-    created_at = payment_response.get("created_at")
-    amount = payment_response.get("total")
 
-    new_payment = Payments(                                                             # Guardamos el pago en la base de datos
-        payment_id = payment_id,
-        amount = amount,  
-        currency = "EUR",
-        status = status,
-        description = description,
-        payment_method = payment_method,
-        created_at = created_at,
-        user_id = user.id
+    payment_response = monei_client.payments.create(payment_data)
+
+    new_payment = Payments(
+        payment_id=payment_response.get("id"),
+        amount=payment_response.get("amount"),
+        currency="EUR",
+        status=str(payment_response.get("status", "FAILED")),
+        description=payment_response.get("description", ""),
+        payment_method=str(payment_response.get("payment_method", {}).get("method", "")),  
+        created_at=payment_response.get("created_at"),
+        user_id=user.id
     )
 
     db.session.add(new_payment)
     db.session.commit()
 
-    response_body["message"] = f"Payment initiated successfully."
+    response_body["message"] = "Payment initiated successfully."
     response_body["your_payment_link"] = payment_response.get("next_action", {}).get("redirect_url", "No redirect URL provided")
-    response_body["payment_id"] = payment_id
+    response_body["payment_id"] = new_payment.payment_id
 
-    return response_body, 201 if status in ["PENDING", "SUCCESS"] else 200
+    print("Debug - Datos enviados en response_body:", json.dumps(response_body))
+
+    return response_body, 201 if new_payment.status in ["PENDING", "SUCCESS"] else 200
 
 
 @api.route('/payment-status/<payment_id>', methods=['GET'])
@@ -524,114 +496,98 @@ def check_payment_status(payment_id):
         response_body['message'] = 'User not found'
         return response_body, 400
 
-    payment = db.session.execute(
-        db.select(Payments).where(Payments.payment_id == payment_id, Payments.user_id == user.id)
-    ).scalar()
+    payment = db.session.execute(db.select(Payments).where(Payments.payment_id == payment_id, Payments.user_id == user.id)).scalar()
     if not payment:
         response_body["message"] = "Payment not found"
-        return response_body, 404 
+        return response_body, 404  
 
-    payment_response = monei_client.payments.get(payment_id)                              # Llamada a la API de MONEI
-    print("Respuesta del estado del pago:", payment_response)
-    
-    new_status = str(payment_response.get("status", payment.status))                      # Actualizamos el estado del pago en la BD
-    if payment.status != new_status:
+    payment_response = monei_client.payments.get(payment_id)  
+
+    new_status = str(payment_response.get("status", payment.status))  
+    new_method = str(payment_response.get("payment_method", {}).get("method", payment.payment_method)) 
+    if payment.status != new_status or payment.payment_method != new_method:
         payment.status = new_status
+        payment.payment_method = new_method  
         db.session.commit()
+    payment_method = payment_response.get("payment_method", {})
+    method_pay = str(payment_method.get("method", "Unknown"))  
+    card_brand = str(payment_method.get("card", {}).get("brand", "Unknown"))  
+    card_last4 = str(payment_method.get("card", {}).get("last4", "****"))  
 
-    payment_dict = payment_response.to_dict()
-    response_body = {
-        "message" : "Payment status checked and updated",
-        "description": payment_dict.get("description", ""),
-        "amount": payment_dict.get("amount", ""),
-        "currency": payment_dict.get("currency", ""),
-        "id": payment_dict.get("id", ""),
-        "payment_method": payment_dict.get("payment_method", ""),  
-        "status": payment_dict.get("status", ""),
-        "status_code": payment_dict.get("status_code", ""),
-        "status_message": payment_dict.get("status_message", "")
-    }
+    response_body.update({
+    "message": "Payment status checked and updated",
+    "description": payment_response.get("description", ""),
+    "amount": payment_response.get("amount", ""),
+    "currency": payment_response.get("currency", ""),
+    "id": payment_response.get("id", ""),
+    "payment_method": method_pay,  
+    "card_brand": card_brand,  
+    "card_last4": card_last4,  
+    "status": str(payment.status),
+    "status_code": payment_response.get("status_code", ""),
+    "status_message": payment_response.get("status_message", "")
+    })
 
     return jsonify(response_body), 200
 
 
 @api.route('/user-transactions', methods=['GET'])
-@jwt_required()  
+@jwt_required()
+@cross_origin(origins="*")  
 def get_user_transactions():
     response_body = {}
     current_user_email = get_jwt_identity()
     user = db.session.execute(db.select(Users).where(Users.email == current_user_email)).scalar()
-    if not user:  
+
+    if not user:
         response_body['message'] = 'User not found'
-        return response_body, 400
+        return jsonify(response_body), 400
 
-    sales = db.session.execute(                                            # Aqui obtenemos todas las ventas del usuario y usamos ".order_by" para ordenarlas por fecha desc
-        db.select(Sales).where(Sales.user_id == user.id).order_by(Sales.sale_date.desc())
-    ).scalars()
+    #  Verificar manualmente en la BD si hay transacciones con payment_id
+    query = db.session.execute(
+        db.text("SELECT id, user_id, payment_id FROM sales WHERE user_id = :user_id"),
+        {"user_id": user.id}
+    )
+    sales_data = query.fetchall()
 
-    transactions_detail = []                                           
+    print(f" SQL Sales for {current_user_email}: {sales_data}")  
+
+    
+    sales = db.session.execute(db.select(Sales).where(Sales.user_id == user.id).order_by(Sales.sale_date.desc())).scalars()
+    for sale in sales:
+        print(f" Sale {sale.id}: payment_id={sale.payment_id}, payment_to={sale.payment_to}")  
+
+    transactions_detail = []
 
     for sale in sales:
-        payment = sale.payment_to                                          # Recuperar el pago de nuestra BD vinculado a esta venta usando el id (`payment_id`)
+        payment = sale.payment_to
 
-        booking_info = None  
-        if sale.booking_id:                                                # Si esta venta está vinculada a una reserva obtenemos los detalles del `Bookings`
-            booking = db.session.execute(
-                db.select(Bookings).where(Bookings.id == sale.booking_id)
-            ).scalar()
+        #  Si payment_id existe pero `payment_to` es None, actualizamos la relación
+        if sale.payment_id and not payment:
+            payment = db.session.execute(db.select(Payments).where(Payments.payment_id == sale.payment_id)).scalar()
+            sale.payment_to = payment
+            db.session.commit()
 
-            if booking and booking.showtime_to:                            # Aqui obtenemos la cantidad de boletos vendidos en `SalesLines` asociados al id de la reserva
-                total_tickets = db.session.execute(
-                    db.select(SalesLines.quantity).where(SalesLines.booking_id == sale.booking_id)
-                ).scalars()
+        if not payment:
+            print(f" Advertencia: `payment_to` es None para sale_id {sale.id} - Ignorando esta venta.")
+            continue  
 
-                ticket_count = sum(total_tickets) if total_tickets else 1  
-
-                booking_info = {
-                    "movie_name": booking.showtime_to.movie_to.title if booking.showtime_to.movie_to else "Unknown",
-                    "ticket_quantity": ticket_count, 
-                    "ticket_subtotal": booking.booking_price * ticket_count,  
-                    "showtime_date": booking.showtime_to.date_time.strftime("%d/%m/%Y"),
-                    "showtime_hour": booking.showtime_to.date_time.strftime("%H:%M"),
-                    "cinema_room": booking.showtime_to.cinema_room_to.name
-                }
-            else:
-                booking_info = {"error": "Booking exists but Showtime is missing"}
-        else:
-            booking_info = {"error": "No booking linked to this sale"}
-
-        
-        sales_lines = db.session.execute(                                  # Obtener todos los productos (`SalesLines`) comprados en esta venta segun el id: sale_id
-            db.select(SalesLines).where(SalesLines.sale_id == sale.id)
-        ).scalars()
-
-        products_info = [
-            {
-                "product_name": sale_line.product_to.name if sale_line.product_to else "Movie Ticket",
-                "quantity": sale_line.quantity,  
-                "unit_price": sale_line.unit_price,
-                "subtotal": sale_line.quantity * sale_line.unit_price  
-            }
-            for sale_line in sales_lines
-        ]
-
-        product_total = sum(item["subtotal"] for item in products_info)
-        
         transactions_detail.append({
-            "payment_id": payment.payment_id if payment else "Unknown",
-            "status": payment.status if payment else "Unknown",
-            "amount": product_total,
-            "currency": payment.currency if payment else "EUR",
-            "description": payment.description if payment else "Unknown",
-            "payment_method": payment.payment_method if payment else "Unknown",
+            "payment_id": payment.payment_id,
+            "status": payment.status,
+            "amount": sale.total,
+            "currency": payment.currency,
+            "description": payment.description,
+            "payment_method": payment.payment_method,
             "created_at": payment.created_at if payment else int(sale.sale_date.timestamp()),
-            "booking_details": booking_info,  
-            "products_details": products_info  
         })
-    response_body["message"] = "Payment History: "
+
+    response_body["message"] = "Payment History"
     response_body["transactions"] = transactions_detail
 
-    return response_body, 200  
+    print(f" Response Body: {response_body}")  # Verificamos la salida final
+
+    return jsonify(response_body), 200
 
 
 def import_movies():
@@ -705,17 +661,17 @@ def create_cinema_menus():
 #     return [sale.serialize() for sale in sales]
 
 
-# def user_bookings(user_id):
+def user_bookings(user_id):
 
-#     bookings = db.session.execute(
-#         db.select(Bookings)
-#         .join(ShowTimes, Bookings.showtime_id == ShowTimes.id)
-#         .join(Movies, ShowTimes.movie_id == Movies.id)
-#         .join(CinemaRooms, ShowTimes.cinema_room_id == CinemaRooms.id)
-#         .where(Bookings.user_id == user_id)
-#     ).scalars()
+     bookings = db.session.execute(
+         db.select(Bookings)
+         .join(ShowTimes, Bookings.showtime_id == ShowTimes.id)
+        .join(Movies, ShowTimes.movie_id == Movies.id)
+         .join(CinemaRooms, ShowTimes.cinema_room_id == CinemaRooms.id)
+         .where(Bookings.user_id == user_id)
+     ).scalars()
 
-#     return [ booking.user_bookings() for booking in bookings]
+     return [ booking.user_bookings() for booking in bookings]
 
 
 def create_showtimes ():
