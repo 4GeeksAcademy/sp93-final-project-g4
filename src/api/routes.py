@@ -276,6 +276,21 @@ def view_cart():
     return response_body, 200
 
 
+@api.route('/sales', methods=['GET'])
+@jwt_required()
+def get_sales():
+    current_user_email = get_jwt_identity()
+    user = db.session.execute(
+        db.select(Users).where(Users.email == current_user_email)
+    ).scalar()
+
+    sales = db.session.execute(
+        db.select(Sales).where(Sales.user_id == user.id)
+    ).scalars()
+
+    return jsonify([sale.serialize() for sale in sales]), 200
+
+
 @api.route('/store-cinema', methods=['POST'])
 @jwt_required()
 def store_cinema():
@@ -302,7 +317,7 @@ def store_cinema():
         products_detail = []
         has_valid_items = False
 
-        new_sale = Sales(user_id=user.id, total=total)
+        new_sale = Sales(user_id=user.id)
 
         for item in cart.items:
             if item.product_to_cart:
@@ -344,6 +359,8 @@ def store_cinema():
                 item_serialized = item.serialize()
                 item_serialized["qr_code"] = qr_image
                 products_detail.append(item_serialized)
+        
+        new_sale.total = total
 
         if not has_valid_items:
             return {"message": "You don't have valid items to buy"}, 400

@@ -174,8 +174,7 @@ class Sales(db.Model):
         return{'sale_id': self.id,
                 'sale_date': self.sale_date.strftime("%d/%m/%Y %H:%M"),
                 'sales_lines': [sale_line.serialize() for sale_line in self.sales_lines_to],
-                'discount': self.discount,
-                'total': self.total,}
+                'total': round(self.total, 2),}
 
 
 class SalesLines(db.Model):
@@ -193,10 +192,34 @@ class SalesLines(db.Model):
         return f'<Sales Lines: {self.id}'
     
     def serialize(self):
-        return{ 'quantity': self.quantity,
-                'unit_price': self.unit_price,
-                'product': self.product_to.name,
-                'booking': self.booking_to.showtime_to.movie_to.title}
+        if self.product_to:
+            return {
+                "type": "product",
+                "id": self.id,
+                "quantity": self.quantity,
+                "unit_price": self.unit_price,
+                "product": {
+                    "id": self.product_to.id,
+                    "name": self.product_to.name,
+                    "price": self.product_to.base_price
+                }
+            }
+
+        elif self.booking_to:
+            return {
+                "type": "booking",
+                "id": self.id,
+                "quantity": self.quantity,
+                "unit_price": self.unit_price,
+                "booking": {
+                    "id": self.booking_to.id,
+                    "movie": self.booking_to.showtime_to.movie_to.title,
+                    "room": self.booking_to.showtime_to.cinema_room_to.name,
+                    "time": self.booking_to.showtime_to.date_time.strftime('%Y-%m-%d %H:%M'),
+                    "qr": self.booking_to.qr_code
+                }
+            }
+
     
     
 class Products(db.Model):
