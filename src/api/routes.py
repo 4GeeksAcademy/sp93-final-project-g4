@@ -464,10 +464,10 @@ def import_movies():
             trailers = sorted([
             video for video in videos_data.get("results", [])
             if video["site"] == "YouTube" and video["type"] == "Trailer"
-        ], key=lambda v: (
-            'official' not in v["name"].lower(),
-            'teaser' in v["name"].lower(),
-            len(v["name"])
+        ], key=lambda trailer: (
+            'official' not in trailer["name"].lower(),
+            'teaser' in trailer["name"].lower(),
+            len(trailer["name"])
         ))
         if trailers:
             trailer = trailers[0]["key"]
